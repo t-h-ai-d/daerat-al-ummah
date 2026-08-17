@@ -6,7 +6,7 @@ const sections = [
   {
     icon: UserRoundCheck,
     title: "١. نطاق هذه السياسة وهوية المجتمع",
-    body: "دائرة الأمة السُّنّية مساحة تواصل للمسلمين من أهل السُّنّة والجماعة. تشرح هذه السياسة كيف نتعامل مع البيانات عند إنشاء الحساب واستخدام المنشورات والرسائل والتبليغات. استعمال المنصة يعني الاطلاع على هذه السياسة وقواعد الدائرة والالتزام بهما.",
+    body: "دائرة الأمة مساحة تواصل للمسلمين من أهل السُّنّة والجماعة. تشرح هذه السياسة كيف نتعامل مع البيانات عند إنشاء الحساب واستخدام المنشورات والرسائل والتبليغات. استعمال المنصة يعني الاطلاع على هذه السياسة وقواعد الدائرة والالتزام بهما.",
   },
   {
     icon: FileText,
@@ -60,7 +60,7 @@ export default function PrivacyPage() {
           <div className="absolute -bottom-24 left-24 h-52 w-52 rounded-full border border-[#d7b961]/15" />
           <div className="relative max-w-3xl">
             <span className="inline-flex items-center gap-2 rounded-full border border-[#e4c76b]/25 bg-white/5 px-3 py-1.5 text-xs font-bold text-[#ead57d]"><ShieldCheck size={15} /> الخصوصية والأمانة</span>
-            <h1 className="mt-5 font-display text-4xl font-bold tracking-[-0.045em] sm:text-5xl">سياسة الخصوصية<br />لدائرة الأمة السُّنّية</h1>
+            <h1 className="mt-5 font-display text-4xl font-bold tracking-[-0.045em] sm:text-5xl">سياسة الخصوصية<br />لدائرة الأمة</h1>
             <p className="mt-5 max-w-2xl text-sm leading-7 text-[#d2e0d4] sm:text-base">وثيقة واضحة تشرح ما نحتفظ به، ولماذا نحتاجه، وكيف نحمي كرامة الأعضاء وبياناتهم داخل مجتمع سُنّي يقوم على الأمانة والأدب.</p>
             <p className="mt-5 text-xs font-bold tracking-wide text-[#e5c96d]">آخر تحديث: ١٧ أغسطس ٢٠٢٦</p>
           </div>

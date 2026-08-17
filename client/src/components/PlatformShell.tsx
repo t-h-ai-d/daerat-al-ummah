@@ -199,7 +199,7 @@ export default function PlatformShell({ children }: { children: ReactNode }) {
               <Sparkles size={19} strokeWidth={2.3} />
             </span>
             <span className="hidden leading-none sm:block">
-              <span className="block font-display text-[19px] font-bold tracking-[-0.045em] text-[#11372d]">دائرة الأمة السُّنّية</span>
+              <span className="block font-display text-[19px] font-bold tracking-[-0.045em] text-[#11372d]">دائرة الأمة</span>
               <span className="mt-1 block text-[10px] font-bold tracking-[0.19em] text-[#9e7d2c]">تواصَل بأدب</span>
             </span>
           </button>

@@ -57,3 +57,4 @@
 - [x] Remove residual Manus authentication fallback code so active account flows remain email/username/password based.
 - [x] Run final type, test, and Arabic RTL interface verification after the local-auth cleanup.
 - [x] Add an explicit public-post-only option to the member-controlled feed filters and validate its server contract.
+- [x] Replace every visible legacy Arabic platform name with دائرة الأمة and verify the header, privacy, and creator pages.
