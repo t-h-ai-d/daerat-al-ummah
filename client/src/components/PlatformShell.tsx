@@ -94,6 +94,17 @@ const arabicLabels: Record<string, string> = {
   "Actions available": "الإجراءات المتاحة",
   "Account status": "حالة الحساب",
   "Admin": "مشرف",
+  "Ummah Circle": "دائرة الأمة",
+  "“Benefit over vanity. Presence over pressure.”": "«النفع قبل المظاهر، والحضور بلا ضغط.»",
+  "Benefit over vanity. Presence": "النفع قبل المظاهر، الحضور",
+  "over pressure.": "بلا ضغط.",
+  "Your Ummah Circle account": "حسابك في دائرة الأمة",
+  "Respect-first identity": "هوية قائمة على الاحترام",
+  "#seekknowledge": "#اطلب_العلم",
+  "#mindfulmedia": "#إعلام_واعٍ",
+  "#service": "#خدمة",
+  "#quranreflection": "#تدبر_القرآن",
+  "#goodcharacter": "#حسن_الخلق",
 };
 
 function translateStaticLabels() {
