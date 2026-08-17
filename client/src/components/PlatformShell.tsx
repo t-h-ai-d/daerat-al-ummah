@@ -14,7 +14,7 @@ import {
   UserRound,
   X,
 } from "lucide-react";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { useLocation } from "wouter";
 
 type NavItem = { label: string; href: string; icon: typeof Home };
@@ -26,6 +26,88 @@ const primaryNav: NavItem[] = [
   { label: "الإشعارات", href: "/notifications", icon: Bell },
   { label: "قواعد الدائرة", href: "/rules", icon: BookOpen },
 ];
+
+const arabicLabels: Record<string, string> = {
+  "The circle standard": "معيار الدائرة",
+  "Speak truthfully and cite what you share.": "تكلّم بصدق وتثبّت مما تشارك.",
+  "Protect people from scams and manipulation.": "احمِ الناس من الاحتيال والتلاعب.",
+  "Choose beneficial content over endless reactions.": "اختر المحتوى النافع بدل التفاعل المرهق.",
+  "Treat Islamic identities with dignity and without bias.": "احترم الهويات الإسلامية بكرامة ومن دون تحيّز.",
+  "Today’s intention": "نية اليوم",
+  "Benefit over vanity. Presence over pressure.": "النفع قبل المظاهر. الحضور بلا ضغط.",
+  "Use your feed with intention: learn, contribute, and reconnect.": "استخدم خلاصتك بنية: تعلّم، ساهم، وتواصل.",
+  "Discover with intention": "استكشف بنية طيبة",
+  "Explore the circle": "استكشف الدائرة",
+  "Community rules": "قواعد الدائرة",
+  "A shared amanah": "أمانة مشتركة",
+  "Truth is a trust": "الصدق أمانة",
+  "No scams or exploitation": "لا احتيال ولا استغلال",
+  "No brainrot": "لا محتوى مُفسِد للعقل",
+  "Respect the sacred": "احترام المقدسات",
+  "Protect the circle": "احمِ الدائرة",
+  "Stay in the loop": "ابقَ على اطلاع",
+  "Notifications": "الإشعارات",
+  "Profile & identity": "الملف الشخصي والهوية",
+  "Your place in the circle": "مكانك في الدائرة",
+  "Moderator workspace": "مساحة المشرف",
+  "Guard the circle": "حماية الدائرة",
+  "Bio": "نبذة",
+  "Username": "اسم المستخدم",
+  "Country": "البلد",
+  "Madhhab preference": "المذهب المفضّل",
+  "Save profile": "حفظ الملف",
+  "Follow": "متابعة",
+  "People": "الأشخاص",
+  "Posts": "المنشورات",
+  "Searching the circle…": "يجري البحث في الدائرة…",
+  "Find people and useful conversations by name, keyword, or hashtag. Search is designed for depth, not endless recommendations.": "ابحث عن الأشخاص والحوارات النافعة بالاسم أو الكلمة أو الوسم. صُمّم البحث للعمق لا للتوصيات اللانهائية.",
+  "Search people, posts, or #topics": "ابحث عن أشخاص أو منشورات أو #مواضيع",
+  "Try a topic": "جرّب موضوعاً",
+  "No people matched this search yet.": "لا يوجد أشخاص مطابقون لهذا البحث بعد.",
+  "No posts matched this search yet.": "لا توجد منشورات مطابقة لهذا البحث بعد.",
+  "Circle member": "عضو في الدائرة",
+  "These are simple on purpose. They protect trust, attention, and the dignity of everyone in the circle.": "هذه القواعد بسيطة عن قصد؛ فهي تحمي الثقة والانتباه وكرامة كل من في الدائرة.",
+  "Do not knowingly share lies, misleading claims, impersonation, or manipulated material. If you are uncertain, say so and seek reliable sources.": "لا تشارك عن علم كذباً أو ادعاءات مضللة أو انتحالاً أو مادة محرّفة. إن لم تكن متأكداً فاذكر ذلك وابحث عن مصادر موثوقة.",
+  "Do not solicit money, credentials, private details, or engagement through deception, pressure, or false promises.": "لا تطلب المال أو بيانات الدخول أو التفاصيل الخاصة أو التفاعل بالخداع أو الضغط أو الوعود الكاذبة.",
+  "Avoid empty outrage, compulsive-scroll bait, degrading trends, and content designed to drain attention without benefit.": "تجنب الاستفزاز الفارغ وطُعم التمرير القهري والاتجاهات المبتذلة والمحتوى المصمم لاستنزاف الانتباه بلا نفع.",
+  "Do not post haram imagery or content that mocks faith, people, or Islamic practices. Disagree with adab and without sectarian bias.": "لا تنشر صوراً محرمة أو محتوى يسخر من الدين أو الناس أو الممارسات الإسلامية. اختلف بأدب ومن دون تحيز مذهبي.",
+  "Report harmful content accurately. Moderators review reports fairly and may issue warnings, remove content, or ban repeat offenders.": "بلّغ عن المحتوى الضار بدقة. يراجع المشرفون البلاغات بعدل وقد يوجّهون إنذارات أو يزيلون المحتوى أو يحظرون المكررين.",
+  "Follow activity, thoughtful replies, mentions, and moderation updates will appear here.": "ستظهر هنا المتابعات والردود النافعة والإشارات وتحديثات الإشراف.",
+  "You will only see activity directly connected to your circle, without artificial engagement prompts.": "لن ترى هنا إلا النشاط المتصل بدائرتك مباشرةً، من دون حوافز تفاعل مصطنعة.",
+  "Your space is calm for now.": "مساحتك هادئة الآن.",
+  "Notifications will appear for new followers, likes, comments, reposts, mentions, and moderation updates.": "ستظهر الإشعارات للمتابعين الجدد والإعجابات والتعليقات وإعادة النشر والإشارات وتحديثات الإشراف.",
+  "Your country and madhhab preference are optional personal fields. They are shown with respect and never used to rank people or limit participation.": "البلد والمذهب المفضّل حقول شخصية اختيارية. تُعرض باحترام ولا تُستخدم مطلقاً لترتيب الأعضاء أو تقييد مشاركتهم.",
+  "Your profile has been saved.": "تم حفظ ملفك الشخصي.",
+  "Share a little about the benefit you hope to bring.": "شارك نبذة عن النفع الذي تأمل تقديمه.",
+  "Optional — letters, numbers, underscores": "اختياري — أحرف أو أرقام أو شرطات سفلية",
+  "Avatar image URL": "رابط صورة الملف",
+  "Optional": "اختياري",
+  "Optional — presented without bias": "اختياري — يُعرض دون تحيّز",
+  "This workspace is restricted to authorised administrators.": "هذه المساحة مخصّصة للمشرفين المخوّلين فقط.",
+  "Moderator access required.": "يلزم صلاحية المشرف.",
+  "The report queue, warnings, post removal, and bans are only available to administrators.": "قائمة البلاغات والإنذارات وإزالة المنشورات والحظر متاحة للمشرفين فقط.",
+  "A clear space, ready for benefit.": "مساحة هادئة، جاهزة للنفع.",
+  "There are no posts in this view yet. Share a useful thought or choose another intentional view.": "لا توجد منشورات في هذه الخلاصة بعد. شارك فكرة نافعة أو اختر خلاصة أخرى.",
+  "You are caught up. Step away when you are ready — the circle will still be here.": "وصلت إلى نهاية الخلاصة. خذ وقتك؛ الدائرة ستبقى هنا.",
+  "Review reports carefully, apply proportionate actions, and keep a clear accountability record.": "راجع البلاغات بعناية، واتخذ إجراءات متناسبة، وحافظ على سجل واضح للمساءلة.",
+  "Open reports": "البلاغات المفتوحة",
+  "Actions available": "الإجراءات المتاحة",
+  "Account status": "حالة الحساب",
+  "Admin": "مشرف",
+};
+
+function translateStaticLabels() {
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  const nodes: Text[] = [];
+  while (walker.nextNode()) nodes.push(walker.currentNode as Text);
+  nodes.forEach(node => {
+    const label = node.nodeValue?.trim();
+    if (label && arabicLabels[label]) node.nodeValue = node.nodeValue?.replace(label, arabicLabels[label]) ?? node.nodeValue;
+  });
+  document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>("input[placeholder], textarea[placeholder]").forEach(field => {
+    if (arabicLabels[field.placeholder]) field.placeholder = arabicLabels[field.placeholder];
+  });
+}
 
 function initials(value?: string | null) {
   return (value || "UC")
@@ -42,6 +124,13 @@ export default function PlatformShell({ children }: { children: ReactNode }) {
   const { user, isAuthenticated, loading } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [query, setQuery] = useState("");
+
+  useEffect(() => {
+    translateStaticLabels();
+    const observer = new MutationObserver(translateStaticLabels);
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, []);
 
   const navigate = (href: string) => {
     setLocation(href);

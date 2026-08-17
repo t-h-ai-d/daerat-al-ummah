@@ -24,11 +24,12 @@
 - [x] Preserve Arabic harakāt and shaddah exactly, add Arabic-first font support, and apply RTL-aware input for Arabic posts and comments plus RTL post rendering.
 - [x] Replace Manus-only sign-in with secure email, username, and password registration and login.
 - [x] Add password hashing, duplicate-account safeguards, password validation, secure sessions, and protected member routes.
-- [ ] Make Arabic the default application language, including Arabic navigation, content labels, forms, empty states, and moderation workflows.
+- [ ] Replace the temporary shared-label layer with explicit Arabic copy in Home, Explore, Notifications, Rules, Profile, Chat, Auth, and Admin.
 - [x] Convert the primary interface to an Arabic-default responsive right-to-left layout.
-- [ ] Add tests for registration and password sign-in validation, then verify the Arabic-first member experience on desktop and mobile.
+- [x] Add tests for registration and password sign-in validation, then verify the Arabic-first member experience on desktop and mobile.
 - [x] Add private conversation and message data models with participant access controls.
 - [x] Build an Arabic-first direct-message inbox and conversation screen with authenticated send and receive actions.
-- [ ] Surface clear comment and share/repost actions throughout the feed with Arabic labels and responsive controls.
-- [ ] Add tests for private-message access control and sharing/comment validation.
+- [x] Surface clear comment and share/repost actions throughout the feed with Arabic labels and responsive controls.
+- [x] Add tests for private-message input validation and participant-only access, plus sharing/comment safeguards.
 - [x] Support @username mentions in posts, comments, and direct messages, with recipient notifications and Arabic user guidance.
+- [ ] Audit every member-facing route for English strings and finish the Arabic component-level conversion, including dynamic prompts and notifications.

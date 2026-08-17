@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { AlertTriangle, ArrowUpRight, Bookmark, FileText, Heart, ImagePlus, Link2, Loader2, MessageCircle, MoreHorizontal, Play, Repeat2, Send, ShieldAlert, Sparkles, Upload, Video } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "wouter";
 
 type Attachment = { id?: number; kind: "image" | "video" | "file" | "link"; url: string; storageKey?: string | null; filename?: string | null; mimeType?: string | null; sizeBytes?: number | null };
@@ -17,6 +17,72 @@ type FeedPost = { id: number; author: { id: number; name: string | null; usernam
 
 const reportCategories = ["scam", "lie", "brainrot", "haram imagery"] as const;
 const containsArabic = (value: string) => /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/.test(value);
+
+const arabicUi: Record<string, string> = {
+  "Your mindful feed": "خلاصتك الهادئة",
+  "As-salamu alaykum,": "السلام عليكم،",
+  "No autoplay. No infinite scroll. Just the people and ideas you choose to receive.": "لا تشغيل تلقائي. لا تمرير بلا نهاية. فقط الأشخاص والأفكار التي تختار متابعتها.",
+  "Following": "المتابَعون",
+  "Chronological": "الأحدث",
+  "Trending": "المتداول",
+  "Share something beneficial with your circle…": "شارك شيئاً نافعاً مع دائرتك…",
+  "Share with adab": "انشر بأدب",
+  "A clear space, ready for benefit": "مساحة هادئة، جاهزة للنفع",
+  "There are no posts in this view yet. Share a useful thought or choose another intentional view.": "لا توجد منشورات في هذه الخلاصة بعد. شارك فكرة نافعة أو اختر خلاصة أخرى.",
+  "You are caught up. Step away when you are ready — the circle will still be here.": "وصلت إلى نهاية الخلاصة. خذ وقتك؛ الدائرة ستبقى هنا.",
+  "Reply": "تعليق",
+  "Repost": "إعادة نشر",
+  "Like": "إعجاب",
+  "Add link": "إضافة رابط",
+  "Shared link": "رابط مُشارك",
+  "Shared file": "ملف مُشارك",
+  "Open file in a new tab": "افتح الملف في علامة تبويب جديدة",
+  "Your browser does not support this video.": "متصفحك لا يدعم تشغيل هذا الفيديو.",
+  "Trending is an optional, finite view of the day’s most discussed posts. It is never your default feed.": "المتداول عرض اختياري ومحدود لأهم أحاديث اليوم، وليس خلاصتك الافتراضية.",
+  "Creators can share text, links, images, videos, and files. Arabic harakāt and shaddah are preserved exactly.": "يمكن للمبدعين مشاركة النصوص والروابط والصور والفيديوهات والملفات. تُحفَظ الحركات والشدة العربية كما كُتبت.",
+  "Loading your circle…": "يجري تحميل الدائرة…",
+  "A quick reminder at the point of submission: your words should be truthful, useful, and respectful.": "تذكير عند النشر: اجعل كلماتك صادقة ونافعة ومحترمة.",
+  "I understand and agree to the community rules.": "أفهم قواعد الدائرة وأوافق عليها.",
+  "Go back": "رجوع",
+  "Confirm & share": "تأكيد النشر",
+  "Reply with care": "علّق بأدب",
+  "Add something true, useful, and respectful to the discussion.": "أضف إلى النقاش كلاماً صادقاً نافعاً ومحترماً.",
+  "Cancel": "إلغاء",
+  "Report with care": "بلّغ بأدب",
+  "Choose the clearest category. Reports are sent to moderators for review, not public shaming.": "اختر الفئة الأدق. تصل البلاغات إلى المشرفين للمراجعة لا للتشهير العلني.",
+  "Submit report": "إرسال البلاغ",
+  "By sharing, you confirm that this post does not contain a": "بنشر هذا المحتوى، تؤكد أنه لا يتضمن",
+  "and that it respects fellow Muslims without bias.": "وأنه يحترم المسلمين من دون تحيّز.",
+  "Speak truthfully and cite what you share.": "تكلّم بصدق وتثبّت مما تشارك.",
+  "Protect people from scams and manipulation.": "احمِ الناس من الاحتيال والتلاعب.",
+  "Choose beneficial content over endless distraction.": "اختر المحتوى النافع بدل التشتيت المتواصل.",
+  "Treat Islamic identities with dignity and without bias.": "عامل الهويات الإسلامية بكرامة ومن دون تحيّز.",
+  "Today’s intention": "نية اليوم",
+  "Benefit over vanity. Presence over pressure.": "النفع قبل المظاهر، والحضور بلا ضغط.",
+  "Use your feed with intention: learn, contribute, and reconnect.": "استخدم خلاصتك بنية: تعلّم، ساهم، وتواصل.",
+  "scam": "احتيال",
+  "lie": "كذب",
+  "brainrot": "محتوى مُفسد للعقل",
+  "haram imagery": "صور محرّمة",
+};
+
+function translateHomeUi() {
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  const nodes: Text[] = [];
+  while (walker.nextNode()) nodes.push(walker.currentNode as Text);
+  nodes.forEach(node => {
+    const source = node.nodeValue?.trim();
+    if (source && arabicUi[source]) node.nodeValue = node.nodeValue?.replace(source, arabicUi[source]) ?? node.nodeValue;
+  });
+  document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>("input[placeholder], textarea[placeholder]").forEach(field => {
+    const placeholders: Record<string, string> = {
+      "Share something beneficial with your circle…": "شارك شيئاً نافعاً مع دائرتك…",
+      "Write a thoughtful reply…": "اكتب تعليقاً نافعاً…",
+      "Optional context for moderators": "تفاصيل اختيارية للمشرفين",
+    };
+    if (placeholders[field.placeholder]) field.placeholder = placeholders[field.placeholder];
+  });
+}
 
 function Avatar({ initials, tone = "emerald" }: { initials: string; tone?: "emerald" | "gold" | "ink" }) {
   const palette = { emerald: "bg-[#dcece1] text-[#176047]", gold: "bg-[#f2e5b9] text-[#805f14]", ink: "bg-[#dce3e5] text-[#2c515d]" };
@@ -59,6 +125,13 @@ export default function Home() {
   const inputRef = useRef<HTMLInputElement>(null);
   const authorName = user?.name || "You";
   const authorInitials = useMemo(() => getInitials(authorName), [authorName]);
+
+  useEffect(() => {
+    translateHomeUi();
+    const observer = new MutationObserver(() => translateHomeUi());
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, []);
   const feedQuery = trpc.social.feed.useQuery({ mode: feedMode });
   const createPost = trpc.social.createPost.useMutation({ onSuccess: async () => { await utils.social.feed.invalidate(); setContent(""); setAttachments([]); setLinkUrl(""); setShowLink(false); setAcknowledged(false); setRulesOpen(false); toast.success("Your post is now part of the circle."); }, onError: error => toast.error(error.message) });
   const upload = trpc.social.uploadAttachment.useMutation({ onError: error => toast.error(error.message) });

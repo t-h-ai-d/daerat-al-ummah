@@ -134,6 +134,11 @@ export async function getUserByUsername(username: string) {
   return result[0];
 }
 
+export function assertConversationParticipant(membership: unknown[]) {
+  if (!membership[0]) throw new Error("You do not have access to this conversation.");
+  return membership[0];
+}
+
 async function requireConversationParticipant(userId: number, conversationId: number) {
   const db = await requireDb();
   const membership = await db
@@ -141,8 +146,7 @@ async function requireConversationParticipant(userId: number, conversationId: nu
     .from(conversationParticipants)
     .where(and(eq(conversationParticipants.userId, userId), eq(conversationParticipants.conversationId, conversationId)))
     .limit(1);
-  if (!membership[0]) throw new Error("You do not have access to this conversation.");
-  return membership[0];
+  return assertConversationParticipant(membership);
 }
 
 export async function startDirectConversation(userId: number, targetUsername: string) {
