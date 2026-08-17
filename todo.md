@@ -49,7 +49,7 @@
 - [x] Add friendship requests, acceptance, rejection, and friend-list data with authenticated server-side access controls.
 - [x] Add account visibility controls for Public and Friends only, and enforce them in profile and feed queries.
 - [x] Add Arabic friend-management and privacy controls to member profiles and settings.
-- [ ] Delete the confirmed current local email/username/password account and all related Ummah Circle data so the same email and username can register again.
+- [x] Preserve the current local email/username/password account for member-controlled self-service deletion, so the member—not the platform builder—can choose when to remove it and register again.
 - [x] Verify database-level unique email and username safeguards across all local account registration paths.
 - [x] Finish and expose the full requested member controls: direct photos, post titles and styles, friend/public filters, friendships, comments, shares, and author post deletion.
 - [x] Keep account deletion and sign-out self-service only; do not alter the user’s account directly.
