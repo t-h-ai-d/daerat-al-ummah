@@ -61,3 +61,4 @@
 - [x] Clarify and safeguard local-only account deletion: external-session accounts are explained and disabled in the UI, while valid email/username/password accounts retain self-service deletion.
 - [x] Permanently delete the user-confirmed current external Google-linked دائرة الأمة account and its related platform data; do not alter the Google account itself.
 - [x] Clear stale browser sessions for deleted platform accounts while preserving intended signed-out public browsing routes.
+- [x] Remove the remaining Manus-linked browser session that still renders the deleted account in the active client.

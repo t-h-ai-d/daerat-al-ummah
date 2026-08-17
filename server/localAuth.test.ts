@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hashPassword, verifyPassword } from "./localAuth";
+import { hashPassword, isValidLocalSessionUser, verifyPassword } from "./localAuth";
 import { loginInput, registerInput } from "./routers/localAuth";
 
 describe("local account safeguards", () => {
@@ -17,5 +17,11 @@ describe("local account safeguards", () => {
   it("accepts a username or email login identifier", () => {
     expect(loginInput.safeParse({ identifier: "member_name", password: "x" }).success).toBe(true);
     expect(loginInput.safeParse({ identifier: "member@example.com", password: "x" }).success).toBe(true);
+  });
+
+  it("never treats a passwordless external account as a local session", () => {
+    expect(isValidLocalSessionUser({ passwordHash: null, accountStatus: "active" })).toBe(false);
+    expect(isValidLocalSessionUser({ passwordHash: "stored-hash", accountStatus: "active" })).toBe(true);
+    expect(isValidLocalSessionUser({ passwordHash: "stored-hash", accountStatus: "banned" })).toBe(false);
   });
 });

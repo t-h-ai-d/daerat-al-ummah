@@ -50,6 +50,10 @@ export function clearLocalSession(res: Response, req: Request) {
   res.clearCookie(LOCAL_SESSION_COOKIE, getSessionCookieOptions(req));
 }
 
+export function isValidLocalSessionUser(user: Pick<User, "passwordHash" | "accountStatus"> | null) {
+  return user !== null && Boolean(user.passwordHash) && user.accountStatus !== "banned";
+}
+
 export async function getLocalSessionUser(req: Request): Promise<User | null> {
   try {
     const token = parse(req.headers.cookie ?? "")[LOCAL_SESSION_COOKIE];
@@ -57,7 +61,8 @@ export async function getLocalSessionUser(req: Request): Promise<User | null> {
     const { payload } = await jwtVerify(token, sessionSecret());
     if (payload.type !== "local" || typeof payload.userId !== "number") return null;
     const user = await getUserById(payload.userId);
-    return user?.accountStatus === "banned" ? null : user ?? null;
+    if (!user || !isValidLocalSessionUser(user)) return null;
+    return user;
   } catch {
     return null;
   }
