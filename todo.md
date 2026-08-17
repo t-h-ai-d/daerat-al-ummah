@@ -1,0 +1,24 @@
+# Project TODO
+
+- [x] Define the Ummah Circle design system with premium Islamic-inspired colors, typography, responsive layout, and accessible interaction states.
+- [x] Create a public social-platform shell with primary navigation for Home, Explore, Notifications, Rules, Profile, and Admin.
+- [x] Add profile data for avatar, bio, country, respectful madhab preference, account status, and respectful identity presentation.
+- [x] Add post data supporting text, image URL, links, hashtags, author, timestamps, visibility, engagement counts, and moderation state.
+- [x] Add follows, likes, comments, reposts, reports, moderation actions, and notifications data models with proper user relationships.
+- [x] Build a home feed with chronological and trending views, followed-user content, rich post cards, and intentional empty/loading states.
+- [x] Build the post composer with text, link, image upload, and file upload support plus a mandatory community-rules reminder at submission.
+- [x] Implement protected post creation, feed retrieval, follow/unfollow, likes, comments, and repost interactions through typed server procedures.
+- [x] Implement content reporting using the exact categories: scam, lie, brainrot, and haram imagery.
+- [x] Build an admin moderation panel for reviewing reports and issuing warnings or bans.
+- [x] Build a dedicated Islamic community rules page with clear conduct guidelines and reporting expectations.
+- [x] Implement user and post search by keyword or hashtag.
+- [x] Implement notifications for follows, likes, comments, reposts, and mentions.
+- [x] Add respectful no-bias presentation of Islamic identity fields and no-fake-engagement policy in the visible product copy.
+- [x] Write and run unit tests for authentication and creator/reporting input safeguards.
+- [x] Verify desktop and mobile layouts, inspect logs, and capture final visual previews.
+- [x] Make feed behaviour explicitly anti-addictive: no autoplay, no infinite scroll, no engagement-ranking, intentional feed controls, and a clear end-of-feed stopping point.
+- [x] Extend posts to support creator-shared image, video, file, text, and link attachments with secure S3 references and media metadata.
+- [x] Update the post composer and feed cards with an accessible attachment workflow for images, videos, files, text, and links.
+- [x] Add user-controlled chronological and following-first feed behaviour instead of attention-maximising recommendations.
+- [x] Preserve Arabic harakāt and shaddah exactly, add Arabic-first font support, and apply RTL-aware input for Arabic posts and comments plus RTL post rendering.
+- [x] Preserve Arabic harakāt and shaddah exactly, add Arabic-first font support, and apply RTL-aware input for Arabic posts and comments plus RTL post rendering.
