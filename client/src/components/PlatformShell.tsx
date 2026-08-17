@@ -1,4 +1,3 @@
-import { startLogin } from "@/const";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +7,7 @@ import {
   Compass,
   Home,
   Menu,
+  MessageCircleMore,
   Search,
   ShieldCheck,
   Sparkles,
@@ -20,10 +20,11 @@ import { useLocation } from "wouter";
 type NavItem = { label: string; href: string; icon: typeof Home };
 
 const primaryNav: NavItem[] = [
-  { label: "Home", href: "/", icon: Home },
-  { label: "Explore", href: "/explore", icon: Compass },
-  { label: "Notifications", href: "/notifications", icon: Bell },
-  { label: "Community rules", href: "/rules", icon: BookOpen },
+  { label: "الرئيسية", href: "/", icon: Home },
+  { label: "استكشاف", href: "/explore", icon: Compass },
+  { label: "الرسائل", href: "/chat", icon: MessageCircleMore },
+  { label: "الإشعارات", href: "/notifications", icon: Bell },
+  { label: "قواعد الدائرة", href: "/rules", icon: BookOpen },
 ];
 
 function initials(value?: string | null) {
@@ -53,31 +54,31 @@ export default function PlatformShell({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div className="min-h-screen bg-[#f5f5ef] text-[#16352d]">
+    <div dir="rtl" lang="ar" className="min-h-screen bg-[#f5f5ef] text-[#16352d]">
       <header className="sticky top-0 z-40 border-b border-[#dce1d5]/90 bg-[#f9faf6]/90 backdrop-blur-xl">
         <div className="mx-auto flex h-[73px] max-w-[1440px] items-center gap-3 px-4 sm:px-6 lg:px-8">
           <button
             onClick={() => navigate("/")}
-            className="group flex shrink-0 items-center gap-2.5 text-left"
-            aria-label="Go to Ummah Circle home"
+            className="group flex shrink-0 items-center gap-2.5 text-right"
+            aria-label="الانتقال إلى الرئيسية"
           >
             <span className="grid h-10 w-10 place-items-center rounded-2xl bg-[#0d3b31] text-[#d9b85b] shadow-[0_8px_20px_rgba(13,59,49,0.18)] transition-transform duration-200 group-hover:-rotate-6">
               <Sparkles size={19} strokeWidth={2.3} />
             </span>
             <span className="hidden leading-none sm:block">
               <span className="block font-display text-[19px] font-bold tracking-[-0.045em] text-[#11372d]">Ummah Circle</span>
-              <span className="mt-1 block text-[10px] font-bold uppercase tracking-[0.19em] text-[#9e7d2c]">Connect with adab</span>
+              <span className="mt-1 block text-[10px] font-bold tracking-[0.19em] text-[#9e7d2c]">تواصَل بأدب</span>
             </span>
           </button>
 
           <form onSubmit={submitSearch} className="mx-auto hidden w-full max-w-[410px] md:block">
             <label className="relative block">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#80968b]" size={17} />
+              <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#80968b]" size={17} />
               <Input
                 value={query}
                 onChange={event => setQuery(event.target.value)}
-                placeholder="Search the circle"
-                className="h-10 rounded-xl border-[#dce3d8] bg-white pl-10 pr-3 text-sm shadow-none placeholder:text-[#90a196] focus-visible:border-[#557c6b] focus-visible:ring-[#557c6b]/20"
+                placeholder="ابحث في الدائرة"
+                className="h-10 rounded-xl border-[#dce3d8] bg-white pr-10 pl-3 text-right text-sm shadow-none placeholder:text-[#90a196] focus-visible:border-[#557c6b] focus-visible:ring-[#557c6b]/20"
               />
             </label>
           </form>
@@ -86,16 +87,16 @@ export default function PlatformShell({ children }: { children: ReactNode }) {
             {isAuthenticated ? (
               <button
                 onClick={() => navigate("/profile")}
-                className="hidden items-center gap-2 rounded-xl p-1.5 pr-3 text-left transition-colors hover:bg-[#eaf0e9] sm:flex"
+                className="hidden items-center gap-2 rounded-xl p-1.5 pl-3 text-right transition-colors hover:bg-[#eaf0e9] sm:flex"
               >
                 <span className="grid h-8 w-8 place-items-center rounded-lg bg-[#e2c56b] text-xs font-extrabold text-[#173b32]">
                   {initials(user?.name)}
                 </span>
-                <span className="max-w-28 truncate text-xs font-bold text-[#294a40]">{user?.name || "My profile"}</span>
+                <span className="max-w-28 truncate text-xs font-bold text-[#294a40]">{user?.name || "ملفي الشخصي"}</span>
               </button>
             ) : !loading ? (
-              <Button onClick={startLogin} className="hidden h-10 rounded-xl bg-[#0d3b31] px-4 text-xs font-bold shadow-none hover:bg-[#175443] sm:inline-flex">
-                Join the circle
+              <Button onClick={() => navigate("/auth")} className="hidden h-10 rounded-xl bg-[#0d3b31] px-4 text-xs font-bold shadow-none hover:bg-[#175443] sm:inline-flex">
+                انضم إلى الدائرة
               </Button>
             ) : null}
             <Button
@@ -103,7 +104,7 @@ export default function PlatformShell({ children }: { children: ReactNode }) {
               size="icon"
               onClick={() => setMobileOpen(value => !value)}
               className="h-10 w-10 rounded-xl text-[#234a3d] hover:bg-[#e7eee6] md:hidden"
-              aria-label="Toggle navigation"
+                aria-label="فتح أو إغلاق القائمة"
             >
               {mobileOpen ? <X size={20} /> : <Menu size={20} />}
             </Button>
@@ -113,8 +114,8 @@ export default function PlatformShell({ children }: { children: ReactNode }) {
           <div className="border-t border-[#e1e6dc] bg-[#fbfcf8] px-4 py-3 md:hidden">
             <form onSubmit={submitSearch} className="mb-3">
               <label className="relative block">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#80968b]" size={16} />
-                <Input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search users, posts or #topics" className="h-10 rounded-xl bg-white pl-10" />
+                <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#80968b]" size={16} />
+                <Input value={query} onChange={event => setQuery(event.target.value)} placeholder="ابحث عن أعضاء أو منشورات أو #موضوع" className="h-10 rounded-xl bg-white pr-10 text-right" />
               </label>
             </form>
             <nav className="grid grid-cols-2 gap-1">
@@ -142,7 +143,7 @@ export default function PlatformShell({ children }: { children: ReactNode }) {
                 <button
                   key={item.href}
                   onClick={() => navigate(item.href)}
-                  className={`group flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-[14px] font-semibold transition-all ${active ? "bg-[#dfece2] text-[#0c4c39] shadow-[inset_3px_0_0_#c9a44e]" : "text-[#567568] hover:bg-white hover:text-[#193e34]"}`}
+                  className={`group flex w-full items-center gap-3 rounded-xl px-3 py-3 text-right text-[14px] font-semibold transition-all ${active ? "bg-[#dfece2] text-[#0c4c39] shadow-[inset_-3px_0_0_#c9a44e]" : "text-[#567568] hover:bg-white hover:text-[#193e34]"}`}
                 >
                   <Icon size={19} strokeWidth={active ? 2.4 : 1.8} />
                   {item.label}
@@ -152,12 +153,12 @@ export default function PlatformShell({ children }: { children: ReactNode }) {
           </nav>
           <div className="mt-8 rounded-2xl border border-[#dbe4d8] bg-[linear-gradient(145deg,#edf3ec,#f9f8ec)] p-4">
             <span className="mb-3 grid h-8 w-8 place-items-center rounded-lg bg-[#c59e43] text-[#14392f]"><ShieldCheck size={17} /></span>
-            <p className="text-sm font-bold text-[#24483d]">A safer space by design.</p>
-            <p className="mt-1.5 text-xs leading-5 text-[#688176]">No scams. No lies. No brainrot. Respect the sanctity of people and faith.</p>
-            <button onClick={() => navigate("/rules")} className="mt-3 text-xs font-extrabold text-[#0f5a43] underline decoration-[#c6a04a] underline-offset-4">Read the rules</button>
+            <p className="text-sm font-bold text-[#24483d]">مساحة أكثر أماناً بالتصميم.</p>
+            <p className="mt-1.5 text-xs leading-5 text-[#688176]">لا احتيال. لا كذب. لا محتوى مُشتّت. احترم كرامة الناس والدين.</p>
+            <button onClick={() => navigate("/rules")} className="mt-3 text-xs font-extrabold text-[#0f5a43] underline decoration-[#c6a04a] underline-offset-4">اقرأ القواعد</button>
           </div>
           <button onClick={() => navigate("/admin")} className="mt-5 flex items-center gap-2 px-3 text-xs font-semibold text-[#84988e] transition-colors hover:text-[#255444]">
-            <ShieldCheck size={15} /> Moderator workspace
+            <ShieldCheck size={15} /> مساحة المشرف
           </button>
         </aside>
 
@@ -177,7 +178,7 @@ export default function PlatformShell({ children }: { children: ReactNode }) {
         })}
         <button onClick={() => navigate("/profile")} className={`flex flex-1 flex-col items-center justify-center gap-1 text-[10px] font-bold ${location === "/profile" ? "text-[#0a4d38]" : "text-[#809288]"}`}>
           <UserRound size={19} strokeWidth={location === "/profile" ? 2.5 : 1.8} />
-          <span>Profile</span>
+          <span>ملفي</span>
         </button>
       </nav>
     </div>

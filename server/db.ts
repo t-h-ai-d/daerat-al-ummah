@@ -4,12 +4,16 @@ import {
   eq,
   inArray,
   like,
+  ne,
   or,
   sql,
 } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   comments,
+  conversationParticipants,
+  conversations,
+  directMessages,
   follows,
   likes,
   moderationActions,
@@ -76,6 +80,131 @@ export async function getUserById(userId: number) {
   const db = await requireDb();
   const result = await db.select().from(users).where(eq(users.id, userId)).limit(1);
   return result[0];
+}
+
+export async function findUserByEmailOrUsername(email: string, username: string) {
+  const db = await requireDb();
+  const result = await db
+    .select()
+    .from(users)
+    .where(or(eq(users.email, email), eq(users.username, username)))
+    .limit(1);
+  return result[0];
+}
+
+export async function findUserForLogin(identifier: string) {
+  const db = await requireDb();
+  const result = await db
+    .select()
+    .from(users)
+    .where(or(eq(users.email, identifier), eq(users.username, identifier)))
+    .limit(1);
+  return result[0];
+}
+
+export async function createLocalUser(data: {
+  name: string;
+  username: string;
+  email: string;
+  passwordHash: string;
+}) {
+  const db = await requireDb();
+  const created = await db.insert(users).values({
+    openId: `local_${crypto.randomUUID()}`,
+    name: data.name,
+    username: data.username,
+    email: data.email,
+    passwordHash: data.passwordHash,
+    loginMethod: "local",
+    lastSignedIn: new Date(),
+  });
+  const user = await getUserById(Number(created[0].insertId));
+  if (!user) throw new Error("Unable to create account.");
+  return user;
+}
+
+export async function recordLocalSignIn(userId: number) {
+  const db = await requireDb();
+  await db.update(users).set({ lastSignedIn: new Date() }).where(eq(users.id, userId));
+}
+
+export async function getUserByUsername(username: string) {
+  const db = await requireDb();
+  const result = await db.select().from(users).where(eq(users.username, username)).limit(1);
+  return result[0];
+}
+
+async function requireConversationParticipant(userId: number, conversationId: number) {
+  const db = await requireDb();
+  const membership = await db
+    .select()
+    .from(conversationParticipants)
+    .where(and(eq(conversationParticipants.userId, userId), eq(conversationParticipants.conversationId, conversationId)))
+    .limit(1);
+  if (!membership[0]) throw new Error("You do not have access to this conversation.");
+  return membership[0];
+}
+
+export async function startDirectConversation(userId: number, targetUsername: string) {
+  const db = await requireDb();
+  const target = await getUserByUsername(targetUsername);
+  if (!target || target.accountStatus === "banned") throw new Error("Member not found.");
+  if (target.id === userId) throw new Error("You cannot start a chat with yourself.");
+  const memberships = await db.select().from(conversationParticipants).where(eq(conversationParticipants.userId, userId));
+  for (const membership of memberships) {
+    const other = await db
+      .select({ id: conversationParticipants.id })
+      .from(conversationParticipants)
+      .where(and(eq(conversationParticipants.conversationId, membership.conversationId), eq(conversationParticipants.userId, target.id)))
+      .limit(1);
+    if (other[0]) return { conversationId: membership.conversationId, target };
+  }
+  const created = await db.insert(conversations).values({ kind: "direct" });
+  const conversationId = Number(created[0].insertId);
+  await db.insert(conversationParticipants).values([{ conversationId, userId }, { conversationId, userId: target.id }]);
+  return { conversationId, target };
+}
+
+export async function listDirectConversations(userId: number) {
+  const db = await requireDb();
+  const memberships = await db.select().from(conversationParticipants).where(eq(conversationParticipants.userId, userId));
+  const entries = await Promise.all(memberships.map(async membership => {
+    const [other] = await db
+      .select({ id: users.id, name: users.name, username: users.username, avatarUrl: users.avatarUrl })
+      .from(conversationParticipants)
+      .innerJoin(users, eq(conversationParticipants.userId, users.id))
+      .where(and(eq(conversationParticipants.conversationId, membership.conversationId), ne(conversationParticipants.userId, userId)))
+      .limit(1);
+    const [latest] = await db
+      .select()
+      .from(directMessages)
+      .where(eq(directMessages.conversationId, membership.conversationId))
+      .orderBy(desc(directMessages.createdAt))
+      .limit(1);
+    return { conversationId: membership.conversationId, other, latest, updatedAt: latest?.createdAt ?? membership.joinedAt };
+  }));
+  return entries.sort((a, b) => Number(b.updatedAt) - Number(a.updatedAt));
+}
+
+export async function listDirectMessages(userId: number, conversationId: number) {
+  const db = await requireDb();
+  await requireConversationParticipant(userId, conversationId);
+  await db.update(conversationParticipants).set({ lastReadAt: new Date() }).where(and(eq(conversationParticipants.userId, userId), eq(conversationParticipants.conversationId, conversationId)));
+  return db
+    .select({ message: directMessages, senderName: users.name, senderUsername: users.username })
+    .from(directMessages)
+    .innerJoin(users, eq(directMessages.senderId, users.id))
+    .where(eq(directMessages.conversationId, conversationId))
+    .orderBy(directMessages.createdAt)
+    .limit(100);
+}
+
+export async function sendDirectMessage(userId: number, conversationId: number, content: string) {
+  const db = await requireDb();
+  await requireConversationParticipant(userId, conversationId);
+  const created = await db.insert(directMessages).values({ conversationId, senderId: userId, content });
+  await notifyMentions(userId, content, {});
+  return Number(created[0].insertId);
 }
 
 export async function updateProfile(userId: number, data: { username?: string; avatarUrl?: string; bio?: string; country?: string; madhhabPreference?: string }) {
@@ -163,12 +292,12 @@ async function notify(data: { recipientId: number; actorId?: number; postId?: nu
 }
 
 async function notifyMentions(actorId: number, content: string, reference: { postId?: number; commentId?: number }) {
-  const matches = content.match(/(^|\s)@([A-Za-z0-9_]+)/g) ?? [];
+  const matches = content.match(/(^|\s)@([^\s@]{3,32})/g) ?? [];
   const usernames = matches.map(match => match.trim().slice(1)).filter(Boolean);
   if (!usernames.length) return;
   const db = await requireDb();
   const mentioned = await db.select({ id: users.id }).from(users).where(inArray(users.username, usernames));
-  await Promise.all(mentioned.map(person => notify({ recipientId: person.id, actorId, ...reference, type: "mention", message: reference.commentId ? "mentioned you in a reply" : "mentioned you in a post" })));
+  await Promise.all(mentioned.map(person => notify({ recipientId: person.id, actorId, ...reference, type: "mention", message: reference.commentId ? "ذكرك في رد" : reference.postId ? "ذكرك في منشور" : "ذكرك في رسالة خاصة" })));
 }
 
 export async function toggleFollow(actorId: number, targetId: number) {

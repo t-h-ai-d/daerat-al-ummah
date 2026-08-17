@@ -18,7 +18,8 @@ export const users = mysqlTable("users", {
   id: int("id").autoincrement().primaryKey(),
   openId: varchar("openId", { length: 64 }).notNull().unique(),
   name: text("name"),
-  email: varchar("email", { length: 320 }),
+  email: varchar("email", { length: 320 }).unique(),
+  passwordHash: varchar("passwordHash", { length: 255 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
   role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
   username: varchar("username", { length: 32 }).unique(),
@@ -33,6 +34,47 @@ export const users = mysqlTable("users", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
 });
+
+export const conversations = mysqlTable("conversations", {
+  id: int("id").autoincrement().primaryKey(),
+  kind: mysqlEnum("kind", ["direct"]).default("direct").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export const conversationParticipants = mysqlTable(
+  "conversationParticipants",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    conversationId: int("conversationId")
+      .notNull()
+      .references(() => conversations.id, { onDelete: "cascade" }),
+    userId: int("userId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    joinedAt: timestamp("joinedAt").defaultNow().notNull(),
+    lastReadAt: timestamp("lastReadAt"),
+  },
+  table => [
+    uniqueIndex("conversation_participant_unique").on(table.conversationId, table.userId),
+    index("conversation_participant_user_idx").on(table.userId, table.conversationId),
+  ],
+);
+
+export const directMessages = mysqlTable(
+  "directMessages",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    conversationId: int("conversationId")
+      .notNull()
+      .references(() => conversations.id, { onDelete: "cascade" }),
+    senderId: int("senderId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    content: text("content").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  table => [index("messages_conversation_created_idx").on(table.conversationId, table.createdAt)],
+);
 
 export const posts = mysqlTable(
   "posts",

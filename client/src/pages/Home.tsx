@@ -1,5 +1,4 @@
 import { useAuth } from "@/_core/hooks/useAuth";
-import { startLogin } from "@/const";
 import PlatformShell from "@/components/PlatformShell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,6 +10,7 @@ import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { AlertTriangle, ArrowUpRight, Bookmark, FileText, Heart, ImagePlus, Link2, Loader2, MessageCircle, MoreHorizontal, Play, Repeat2, Send, ShieldAlert, Sparkles, Upload, Video } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
+import { useLocation } from "wouter";
 
 type Attachment = { id?: number; kind: "image" | "video" | "file" | "link"; url: string; storageKey?: string | null; filename?: string | null; mimeType?: string | null; sizeBytes?: number | null };
 type FeedPost = { id: number; author: { id: number; name: string | null; username: string | null; avatarUrl: string | null }; content: string; createdAt: Date; attachments: Attachment[]; likeCount: number; commentCount: number; repostCount: number; likedByViewer: boolean; repostedByViewer: boolean };
@@ -41,6 +41,7 @@ function PostCard({ post, onLike, onRepost, onComment, onReport }: { post: FeedP
 
 export default function Home() {
   const { user, isAuthenticated } = useAuth();
+  const [, setLocation] = useLocation();
   const utils = trpc.useUtils();
   const [feedMode, setFeedMode] = useState<"following" | "chronological" | "trending">("following");
   const [content, setContent] = useState("");
@@ -68,8 +69,8 @@ export default function Home() {
 
   const ensureSignedIn = () => {
     if (isAuthenticated) return true;
-    toast.info("Sign in to join the conversation.");
-    startLogin();
+    toast.info("سجّل الدخول للمشاركة في الدائرة.");
+    setLocation("/auth");
     return false;
   };
 
