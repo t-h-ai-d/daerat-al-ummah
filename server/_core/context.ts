@@ -1,7 +1,6 @@
 import type { CreateExpressContextOptions } from "@trpc/server/adapters/express";
 import type { User } from "../../drizzle/schema";
-import { getLocalSessionUser } from "../localAuth";
-import { sdk } from "./sdk";
+import { clearLocalSession, getLocalSessionUser } from "../localAuth";
 
 export type TrpcContext = {
   req: CreateExpressContextOptions["req"];
@@ -12,16 +11,8 @@ export type TrpcContext = {
 export async function createContext(
   opts: CreateExpressContextOptions
 ): Promise<TrpcContext> {
-  let user: User | null = null;
-
-  user = await getLocalSessionUser(opts.req);
-  if (!user) {
-    try {
-      user = await sdk.authenticateRequest(opts.req);
-    } catch {
-      user = null;
-    }
-  }
+  const user = await getLocalSessionUser(opts.req);
+  if (!user) clearLocalSession(opts.res, opts.req);
 
   return {
     req: opts.req,

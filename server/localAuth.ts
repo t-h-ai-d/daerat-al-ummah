@@ -47,7 +47,7 @@ export async function setLocalSession(res: Response, req: Request, userId: numbe
 }
 
 export function clearLocalSession(res: Response, req: Request) {
-  res.clearCookie(LOCAL_SESSION_COOKIE, { ...getSessionCookieOptions(req), maxAge: -1 });
+  res.clearCookie(LOCAL_SESSION_COOKIE, getSessionCookieOptions(req));
 }
 
 export async function getLocalSessionUser(req: Request): Promise<User | null> {

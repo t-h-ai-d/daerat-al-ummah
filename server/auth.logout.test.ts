@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { appRouter } from "./routers";
 import { LOCAL_SESSION_COOKIE } from "./localAuth";
-import type { TrpcContext } from "./_core/context";
+import { createContext, type TrpcContext } from "./_core/context";
 
 type CookieCall = {
   name: string;
@@ -52,11 +52,21 @@ describe("auth.logout", () => {
     expect(clearedCookies).toHaveLength(1);
     expect(clearedCookies[0]?.name).toBe(LOCAL_SESSION_COOKIE);
     expect(clearedCookies[0]?.options).toMatchObject({
-      maxAge: -1,
       secure: true,
       sameSite: "none",
       httpOnly: true,
       path: "/",
     });
+  });
+
+  it("does not resolve an external fallback user and clears a stale local session", async () => {
+    const clearedCookies: CookieCall[] = [];
+    const ctx = await createContext({
+      req: { protocol: "https", headers: {} } as TrpcContext["req"],
+      res: { clearCookie: (name: string, options: Record<string, unknown>) => clearedCookies.push({ name, options }) } as TrpcContext["res"],
+    });
+
+    expect(ctx.user).toBeNull();
+    expect(clearedCookies[0]?.name).toBe(LOCAL_SESSION_COOKIE);
   });
 });
