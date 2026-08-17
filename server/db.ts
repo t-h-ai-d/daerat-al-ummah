@@ -129,10 +129,14 @@ export async function recordLocalSignIn(userId: number) {
   await db.update(users).set({ lastSignedIn: new Date() }).where(eq(users.id, userId));
 }
 
+export function assertLocalAccountDeletionAllowed(loginMethod: string | null | undefined) {
+  if (loginMethod !== "local") throw new Error("هذا الحساب ليس حسابًا محليًا بالبريد واسم المستخدم وكلمة المرور، لذلك لا يمكن حذفه من هذه الصفحة.");
+}
+
 export async function deleteCurrentLocalUser(userId: number) {
   const db = await requireDb();
   const [account] = await db.select({ id: users.id, loginMethod: users.loginMethod }).from(users).where(eq(users.id, userId)).limit(1);
-  if (!account || account.loginMethod !== "local") throw new Error("Only a local account can be deleted here.");
+  assertLocalAccountDeletionAllowed(account?.loginMethod);
   await db.delete(users).where(eq(users.id, userId));
   return { deleted: true as const };
 }

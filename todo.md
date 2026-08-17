@@ -58,3 +58,4 @@
 - [x] Run final type, test, and Arabic RTL interface verification after the local-auth cleanup.
 - [x] Add an explicit public-post-only option to the member-controlled feed filters and validate its server contract.
 - [x] Replace every visible legacy Arabic platform name with دائرة الأمة and verify the header, privacy, and creator pages.
+- [x] Clarify and safeguard local-only account deletion: external-session accounts are explained and disabled in the UI, while valid email/username/password accounts retain self-service deletion.

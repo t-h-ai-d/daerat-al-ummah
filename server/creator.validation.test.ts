@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { TrpcContext } from "./_core/context";
 import { appRouter } from "./routers";
-import { assertPostOwnership } from "./db";
+import { assertLocalAccountDeletionAllowed, assertPostOwnership } from "./db";
 
 const ctx = {
   user: {
@@ -48,5 +48,10 @@ describe("creator controls validation", () => {
 
   it("prevents deletion when a post does not belong to the requesting author", () => {
     expect(() => assertPostOwnership(undefined)).toThrow("You can only delete your own post.");
+  });
+
+  it("allows self-service deletion only for local email-and-password accounts", () => {
+    expect(() => assertLocalAccountDeletionAllowed("local")).not.toThrow();
+    expect(() => assertLocalAccountDeletionAllowed("google")).toThrow("هذا الحساب ليس حسابًا محليًا");
   });
 });
