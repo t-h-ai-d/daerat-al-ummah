@@ -2,7 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import * as db from "../db";
 import { clearLocalSession, hashPassword, setLocalSession, verifyPassword } from "../localAuth";
-import { publicProcedure, router } from "../_core/trpc";
+import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
 
 const usernamePattern = /^\S+$/;
 export const registerInput = z.object({
@@ -53,5 +53,10 @@ export const localAuthRouter = router({
   logout: publicProcedure.mutation(({ ctx }) => {
     clearLocalSession(ctx.res, ctx.req);
     return { success: true } as const;
+  }),
+  deleteOwnAccount: protectedProcedure.mutation(async ({ ctx }) => {
+    const result = await db.deleteCurrentLocalUser(ctx.user.id);
+    clearLocalSession(ctx.res, ctx.req);
+    return result;
   }),
 });

@@ -33,3 +33,27 @@
 - [x] Add tests for private-message input validation and participant-only access, plus sharing/comment safeguards.
 - [x] Support @username mentions in posts, comments, and direct messages, with recipient notifications and Arabic user guidance.
 - [x] Audit the primary member routes and translate their visible labels, prompts, empty states, and moderation controls into Arabic.
+- [x] Write a comprehensive Arabic privacy policy covering account data, posts and uploads, private messages, reports, moderation, notifications, security, retention, and member rights.
+- [x] Create a responsive Arabic RTL privacy policy route and add a discoverable navigation link.
+- [x] Verify the privacy policy page on desktop and mobile, then run the type check and tests.
+- [x] Establish explicit Arabic Sunni community positioning in the platform brand, member guidance, rules, and privacy policy.
+- [x] Add a Sunni-oriented community conduct clause that protects respectful madhhab differences while prohibiting takfīr, insults, and sectarian harassment.
+- [x] Replace profile-photo URL entry with direct image-file upload backed by secure project storage.
+- [x] Ensure post media uses direct image, video, and file uploads without requiring URL entry.
+- [x] Remove remaining Manus account sign-in entry points and provide a safe legacy-Manus-profile removal path within the site database only.
+- [x] Add post title, text emphasis, and safe font-style options that preserve Arabic diacritics and clean RTL rendering.
+- [x] Add member-controlled visibility and feed filters for followed members, public posts, and selected media types.
+- [x] Add an author-only delete-post action with a confirmation step and server-side ownership enforcement.
+- [x] Add tests for post deletion ownership and media upload validation, then verify the new controls on desktop and mobile.
+- [x] Delete the confirmed legacy Manus-created account and its related site data from the Ummah Circle database while preserving local email/password accounts.
+- [x] Add friendship requests, acceptance, rejection, and friend-list data with authenticated server-side access controls.
+- [x] Add account visibility controls for Public and Friends only, and enforce them in profile and feed queries.
+- [x] Add Arabic friend-management and privacy controls to member profiles and settings.
+- [ ] Delete the confirmed current local email/username/password account and all related Ummah Circle data so the same email and username can register again.
+- [x] Verify database-level unique email and username safeguards across all local account registration paths.
+- [x] Finish and expose the full requested member controls: direct photos, post titles and styles, friend/public filters, friendships, comments, shares, and author post deletion.
+- [x] Keep account deletion and sign-out self-service only; do not alter the user’s account directly.
+- [x] Confirm every requested member-facing feature is exposed in the Arabic RTL interface without changing the user’s account directly.
+- [x] Remove residual Manus authentication fallback code so active account flows remain email/username/password based.
+- [x] Run final type, test, and Arabic RTL interface verification after the local-auth cleanup.
+- [x] Add an explicit public-post-only option to the member-controlled feed filters and validate its server contract.

@@ -6,6 +6,7 @@ import {
   BookOpen,
   Compass,
   Home,
+  LogOut,
   Menu,
   MessageCircleMore,
   Search,
@@ -18,6 +19,8 @@ import { type ReactNode, useEffect, useState } from "react";
 import { useLocation } from "wouter";
 
 type NavItem = { label: string; href: string; icon: typeof Home };
+type MediaFilter = "all" | "image" | "video" | "file" | "link";
+type VisibilityFilter = "all" | "public";
 
 const primaryNav: NavItem[] = [
   { label: "الرئيسية", href: "/", icon: Home },
@@ -25,6 +28,20 @@ const primaryNav: NavItem[] = [
   { label: "الرسائل", href: "/chat", icon: MessageCircleMore },
   { label: "الإشعارات", href: "/notifications", icon: Bell },
   { label: "قواعد الدائرة", href: "/rules", icon: BookOpen },
+  { label: "الخصوصية", href: "/privacy", icon: ShieldCheck },
+];
+
+const mediaFilters: Array<{ value: MediaFilter; label: string }> = [
+  { value: "all", label: "الكل" },
+  { value: "image", label: "صور" },
+  { value: "video", label: "فيديو" },
+  { value: "file", label: "ملفات" },
+  { value: "link", label: "روابط" },
+];
+
+const visibilityFilters: Array<{ value: VisibilityFilter; label: string }> = [
+  { value: "all", label: "كل المسموح" },
+  { value: "public", label: "العام فقط" },
 ];
 
 const arabicLabels: Record<string, string> = {
@@ -132,9 +149,11 @@ function initials(value?: string | null) {
 
 export default function PlatformShell({ children }: { children: ReactNode }) {
   const [location, setLocation] = useLocation();
-  const { user, isAuthenticated, loading } = useAuth();
+  const { user, isAuthenticated, loading, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [mediaFilter, setMediaFilter] = useState<MediaFilter>(() => (typeof window !== "undefined" ? (localStorage.getItem("ummah-media-filter") as MediaFilter | null) || "all" : "all"));
+  const [visibilityFilter, setVisibilityFilter] = useState<VisibilityFilter>(() => (typeof window !== "undefined" ? (localStorage.getItem("ummah-visibility-filter") as VisibilityFilter | null) || "all" : "all"));
 
   useEffect(() => {
     translateStaticLabels();
@@ -153,6 +172,20 @@ export default function PlatformShell({ children }: { children: ReactNode }) {
     if (query.trim()) navigate(`/explore?q=${encodeURIComponent(query.trim())}`);
   };
 
+  const selectMediaFilter = (filter: MediaFilter) => {
+    setMediaFilter(filter);
+    localStorage.setItem("ummah-media-filter", filter);
+    window.dispatchEvent(new Event("ummah-media-filter"));
+    setMobileOpen(false);
+  };
+
+  const selectVisibilityFilter = (filter: VisibilityFilter) => {
+    setVisibilityFilter(filter);
+    localStorage.setItem("ummah-visibility-filter", filter);
+    window.dispatchEvent(new Event("ummah-visibility-filter"));
+    setMobileOpen(false);
+  };
+
   return (
     <div dir="rtl" lang="ar" className="min-h-screen bg-[#f5f5ef] text-[#16352d]">
       <header className="sticky top-0 z-40 border-b border-[#dce1d5]/90 bg-[#f9faf6]/90 backdrop-blur-xl">
@@ -166,7 +199,7 @@ export default function PlatformShell({ children }: { children: ReactNode }) {
               <Sparkles size={19} strokeWidth={2.3} />
             </span>
             <span className="hidden leading-none sm:block">
-              <span className="block font-display text-[19px] font-bold tracking-[-0.045em] text-[#11372d]">Ummah Circle</span>
+              <span className="block font-display text-[19px] font-bold tracking-[-0.045em] text-[#11372d]">دائرة الأمة السُّنّية</span>
               <span className="mt-1 block text-[10px] font-bold tracking-[0.19em] text-[#9e7d2c]">تواصَل بأدب</span>
             </span>
           </button>
@@ -185,15 +218,24 @@ export default function PlatformShell({ children }: { children: ReactNode }) {
 
           <div className="ml-auto flex items-center gap-2">
             {isAuthenticated ? (
-              <button
-                onClick={() => navigate("/profile")}
-                className="hidden items-center gap-2 rounded-xl p-1.5 pl-3 text-right transition-colors hover:bg-[#eaf0e9] sm:flex"
-              >
-                <span className="grid h-8 w-8 place-items-center rounded-lg bg-[#e2c56b] text-xs font-extrabold text-[#173b32]">
-                  {initials(user?.name)}
-                </span>
-                <span className="max-w-28 truncate text-xs font-bold text-[#294a40]">{user?.name || "ملفي الشخصي"}</span>
-              </button>
+              <div className="hidden items-center gap-1 sm:flex">
+                <button
+                  onClick={() => navigate("/profile")}
+                  className="flex items-center gap-2 rounded-xl p-1.5 pl-3 text-right transition-colors hover:bg-[#eaf0e9]"
+                >
+                  <span className="grid h-8 w-8 place-items-center rounded-lg bg-[#e2c56b] text-xs font-extrabold text-[#173b32]">
+                    {initials(user?.name)}
+                  </span>
+                  <span className="max-w-28 truncate text-xs font-bold text-[#294a40]">{user?.name || "ملفي الشخصي"}</span>
+                </button>
+                <button
+                  onClick={() => { void logout(); }}
+                  className="flex h-10 items-center gap-1.5 rounded-xl px-3 text-xs font-bold text-[#60786c] transition-colors hover:bg-[#edf1eb] hover:text-[#1e5440]"
+                  aria-label="تسجيل الخروج"
+                >
+                  <LogOut size={15} />تسجيل الخروج
+                </button>
+              </div>
             ) : !loading ? (
               <Button onClick={() => navigate("/auth")} className="hidden h-10 rounded-xl bg-[#0d3b31] px-4 text-xs font-bold shadow-none hover:bg-[#175443] sm:inline-flex">
                 انضم إلى الدائرة
@@ -229,6 +271,7 @@ export default function PlatformShell({ children }: { children: ReactNode }) {
                 );
               })}
             </nav>
+            {location === "/" && <div className="mt-3 space-y-3 border-t border-[#e1e6dc] pt-3"><div><p className="mb-2 text-xs font-bold text-[#537367]">خصوصية الخلاصة</p><div className="flex flex-wrap gap-1.5">{visibilityFilters.map(filter => <button key={filter.value} type="button" onClick={() => selectVisibilityFilter(filter.value)} className={`rounded-lg px-2.5 py-1.5 text-xs font-bold ${visibilityFilter === filter.value ? "bg-[#0d3b31] text-white" : "bg-white text-[#537367]"}`}>{filter.label}</button>)}</div></div><div><p className="mb-2 text-xs font-bold text-[#537367]">تصفية الخلاصة</p><div className="flex flex-wrap gap-1.5">{mediaFilters.map(filter => <button key={filter.value} type="button" onClick={() => selectMediaFilter(filter.value)} className={`rounded-lg px-2.5 py-1.5 text-xs font-bold ${mediaFilter === filter.value ? "bg-[#0d3b31] text-white" : "bg-white text-[#537367]"}`}>{filter.label}</button>)}</div></div></div>}
           </div>
         )}
       </header>
@@ -251,10 +294,11 @@ export default function PlatformShell({ children }: { children: ReactNode }) {
               );
             })}
           </nav>
+          {location === "/" && <section className="mt-6 rounded-2xl border border-[#dbe4d8] bg-white p-4"><p className="text-sm font-bold text-[#24483d]">تصفية الخلاصة</p><p className="mt-1 text-xs leading-5 text-[#688176]">اختر ما تريد رؤيته، من دون توصيات أو تمرير بلا نهاية.</p><div className="mt-3"><p className="text-xs font-bold text-[#537367]">الظهور</p><div className="mt-2 flex flex-wrap gap-1.5">{visibilityFilters.map(filter => <button key={filter.value} type="button" onClick={() => selectVisibilityFilter(filter.value)} className={`rounded-lg px-2.5 py-1.5 text-xs font-bold transition-colors ${visibilityFilter === filter.value ? "bg-[#0d3b31] text-white" : "bg-[#f3f7f1] text-[#4d6d60] hover:bg-[#e4eee4]"}`}>{filter.label}</button>)}</div></div><div className="mt-3"><p className="text-xs font-bold text-[#537367]">نوع المحتوى</p><div className="mt-2 flex flex-wrap gap-1.5">{mediaFilters.map(filter => <button key={filter.value} type="button" onClick={() => selectMediaFilter(filter.value)} className={`rounded-lg px-2.5 py-1.5 text-xs font-bold transition-colors ${mediaFilter === filter.value ? "bg-[#0d3b31] text-white" : "bg-[#f3f7f1] text-[#4d6d60] hover:bg-[#e4eee4]"}`}>{filter.label}</button>)}</div></div></section>}
           <div className="mt-8 rounded-2xl border border-[#dbe4d8] bg-[linear-gradient(145deg,#edf3ec,#f9f8ec)] p-4">
             <span className="mb-3 grid h-8 w-8 place-items-center rounded-lg bg-[#c59e43] text-[#14392f]"><ShieldCheck size={17} /></span>
-            <p className="text-sm font-bold text-[#24483d]">مساحة أكثر أماناً بالتصميم.</p>
-            <p className="mt-1.5 text-xs leading-5 text-[#688176]">لا احتيال. لا كذب. لا محتوى مُشتّت. احترم كرامة الناس والدين.</p>
+            <p className="text-sm font-bold text-[#24483d]">مجتمع سُنّي آمن بالتصميم.</p>
+            <p className="mt-1.5 text-xs leading-5 text-[#688176]">لا احتيال. لا كذب. لا محتوى مُشتّت. والأدب السُّنّي يحفظ كرامة الناس والدين.</p>
             <button onClick={() => navigate("/rules")} className="mt-3 text-xs font-extrabold text-[#0f5a43] underline decoration-[#c6a04a] underline-offset-4">اقرأ القواعد</button>
           </div>
           <button onClick={() => navigate("/admin")} className="mt-5 flex items-center gap-2 px-3 text-xs font-semibold text-[#84988e] transition-colors hover:text-[#255444]">

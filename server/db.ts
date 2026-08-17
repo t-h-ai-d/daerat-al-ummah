@@ -14,6 +14,7 @@ import {
   conversationParticipants,
   conversations,
   directMessages,
+  friendships,
   follows,
   likes,
   moderationActions,
@@ -128,6 +129,14 @@ export async function recordLocalSignIn(userId: number) {
   await db.update(users).set({ lastSignedIn: new Date() }).where(eq(users.id, userId));
 }
 
+export async function deleteCurrentLocalUser(userId: number) {
+  const db = await requireDb();
+  const [account] = await db.select({ id: users.id, loginMethod: users.loginMethod }).from(users).where(eq(users.id, userId)).limit(1);
+  if (!account || account.loginMethod !== "local") throw new Error("Only a local account can be deleted here.");
+  await db.delete(users).where(eq(users.id, userId));
+  return { deleted: true as const };
+}
+
 export async function getUserByUsername(username: string) {
   const db = await requireDb();
   const result = await db.select().from(users).where(eq(users.username, username)).limit(1);
@@ -211,7 +220,7 @@ export async function sendDirectMessage(userId: number, conversationId: number, 
   return Number(created[0].insertId);
 }
 
-export async function updateProfile(userId: number, data: { username?: string; avatarUrl?: string; bio?: string; country?: string; madhhabPreference?: string }) {
+export async function updateProfile(userId: number, data: { username?: string; avatarUrl?: string; bio?: string; country?: string; madhhabPreference?: string; profileVisibility?: "public" | "friends" }) {
   const db = await requireDb();
   await db.update(users).set({ ...data, updatedAt: new Date() }).where(eq(users.id, userId));
   const result = await db.select().from(users).where(eq(users.id, userId)).limit(1);
@@ -227,7 +236,7 @@ export type AttachmentInput = {
   sizeBytes?: number | null;
 };
 
-export async function createPost(userId: number, data: { content: string; visibility: "public" | "followers"; attachments: AttachmentInput[] }) {
+export async function createPost(userId: number, data: { title?: string; content: string; textStyle: "default" | "serif" | "emphasis"; visibility: "public" | "friends"; attachments: AttachmentInput[] }) {
   const db = await requireDb();
   const [account] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
   if (!account || account.accountStatus === "banned") throw new Error("This account cannot publish posts.");
@@ -236,7 +245,9 @@ export async function createPost(userId: number, data: { content: string; visibi
     .join(" ") || null;
   const [created] = await db.insert(posts).values({
     authorId: userId,
+    title: data.title?.trim() || null,
     content: data.content,
+    textStyle: data.textStyle,
     hashtags,
     visibility: data.visibility,
   });
@@ -248,16 +259,53 @@ export async function createPost(userId: number, data: { content: string; visibi
   return postId;
 }
 
-export async function listFeed(viewerId?: number, mode: "following" | "chronological" | "trending" = "following") {
+export async function listMyPosts(authorId: number) {
+  const db = await requireDb();
+  const mine = await db.select().from(posts).where(eq(posts.authorId, authorId)).orderBy(desc(posts.createdAt)).limit(50);
+  if (!mine.length) return [];
+  const attachmentRows = await db.select().from(postAttachments).where(inArray(postAttachments.postId, mine.map(post => post.id)));
+  const attachmentMap = new Map<number, typeof attachmentRows>();
+  attachmentRows.forEach(item => attachmentMap.set(item.postId ?? 0, [...(attachmentMap.get(item.postId ?? 0) ?? []), item]));
+  return mine.map(post => ({ ...post, attachments: attachmentMap.get(post.id) ?? [] }));
+}
+
+export function assertPostOwnership<T extends { id: number }>(post: T | undefined): T {
+  if (!post) throw new Error("You can only delete your own post.");
+  return post;
+}
+
+export async function deletePostByAuthor(authorId: number, postId: number) {
+  const db = await requireDb();
+  const [post] = await db.select({ id: posts.id }).from(posts).where(and(eq(posts.id, postId), eq(posts.authorId, authorId))).limit(1);
+  assertPostOwnership(post);
+  await db.delete(posts).where(eq(posts.id, postId));
+  return { deleted: true as const, postId };
+}
+
+export async function getFriendIds(userId: number) {
+  const db = await requireDb();
+  const links = await db.select().from(friendships).where(and(eq(friendships.status, "accepted"), or(eq(friendships.requesterId, userId), eq(friendships.recipientId, userId))));
+  return new Set(links.map(link => link.requesterId === userId ? link.recipientId : link.requesterId));
+}
+
+async function assertCanAccessPost(viewerId: number, post: typeof posts.$inferSelect) {
+  if (post.visibility === "public" || post.authorId === viewerId) return;
+  const friendIds = await getFriendIds(viewerId);
+  if (!friendIds.has(post.authorId)) throw new Error("This post is limited to friends.");
+}
+
+export async function listFeed(viewerId?: number, mode: "following" | "chronological" | "trending" = "following", mediaType?: "image" | "video" | "file" | "link", visibilityScope: "all" | "public" = "all") {
   const db = await requireDb();
   let rows;
   if (mode === "following" && viewerId) {
     const relationships = await db.select({ followingId: follows.followingId }).from(follows).where(eq(follows.followerId, viewerId));
     const authorIds = [viewerId, ...relationships.map(row => row.followingId)];
-    rows = await db.select({ post: posts, author: users }).from(posts).innerJoin(users, eq(posts.authorId, users.id)).where(and(inArray(posts.authorId, authorIds), eq(posts.moderationStatus, "published"))).orderBy(desc(posts.createdAt)).limit(40);
+    rows = await db.select({ post: posts, author: users }).from(posts).innerJoin(users, eq(posts.authorId, users.id)).where(and(inArray(posts.authorId, authorIds), eq(posts.moderationStatus, "published"))).orderBy(desc(posts.createdAt)).limit(80);
   } else {
-    rows = await db.select({ post: posts, author: users }).from(posts).innerJoin(users, eq(posts.authorId, users.id)).where(eq(posts.moderationStatus, "published")).orderBy(desc(posts.createdAt)).limit(40);
+    rows = await db.select({ post: posts, author: users }).from(posts).innerJoin(users, eq(posts.authorId, users.id)).where(eq(posts.moderationStatus, "published")).orderBy(desc(posts.createdAt)).limit(80);
   }
+  const friendIds = viewerId ? await getFriendIds(viewerId) : new Set<number>();
+  rows = rows.filter(row => row.post.visibility === "public" || (viewerId !== undefined && (row.post.authorId === viewerId || friendIds.has(row.post.authorId)))).slice(0, 40);
   const postIds = rows.map(row => row.post.id);
   if (!postIds.length) return [];
   const [attachmentRows, likeRows, commentRows, repostRows, viewerLikeRows, viewerRepostRows] = await Promise.all([
@@ -286,7 +334,8 @@ export async function listFeed(viewerId?: number, mode: "following" | "chronolog
     likedByViewer: viewerLikes.has(row.post.id),
     repostedByViewer: viewerReposts.has(row.post.id),
   }));
-  return formatted;
+  const mediaFiltered = mediaType ? formatted.filter(post => post.attachments.some(attachment => attachment.kind === mediaType)) : formatted;
+  return visibilityScope === "public" ? mediaFiltered.filter(post => post.visibility === "public") : mediaFiltered;
 }
 
 async function notify(data: { recipientId: number; actorId?: number; postId?: number; commentId?: number; type: "follow" | "like" | "comment" | "repost" | "mention" | "moderation"; message: string }) {
@@ -317,6 +366,44 @@ export async function toggleFollow(actorId: number, targetId: number) {
   return { following: true };
 }
 
+export async function listFriendships(userId: number) {
+  const db = await requireDb();
+  const links = await db.select().from(friendships).where(or(eq(friendships.requesterId, userId), eq(friendships.recipientId, userId))).orderBy(desc(friendships.updatedAt));
+  const rows = await Promise.all(links.map(async link => {
+    const peerId = link.requesterId === userId ? link.recipientId : link.requesterId;
+    const peer = await getUserById(peerId);
+    return { ...link, direction: link.requesterId === userId ? "outgoing" as const : "incoming" as const, peer };
+  }));
+  return rows.filter(row => row.peer);
+}
+
+export async function requestFriendship(requesterId: number, recipientId: number) {
+  if (requesterId === recipientId) throw new Error("You cannot add yourself as a friend.");
+  const db = await requireDb();
+  const target = await getUserById(recipientId);
+  if (!target || target.accountStatus === "banned") throw new Error("Member not found.");
+  const [existing] = await db.select().from(friendships).where(or(and(eq(friendships.requesterId, requesterId), eq(friendships.recipientId, recipientId)), and(eq(friendships.requesterId, recipientId), eq(friendships.recipientId, requesterId)))).limit(1);
+  if (existing?.status === "accepted") return { status: "accepted" as const, friendshipId: existing.id };
+  if (existing?.status === "pending" && existing.recipientId === requesterId) {
+    await db.update(friendships).set({ status: "accepted", updatedAt: new Date() }).where(eq(friendships.id, existing.id));
+    return { status: "accepted" as const, friendshipId: existing.id };
+  }
+  if (existing) {
+    await db.update(friendships).set({ requesterId, recipientId, status: "pending", updatedAt: new Date() }).where(eq(friendships.id, existing.id));
+    return { status: "pending" as const, friendshipId: existing.id };
+  }
+  const created = await db.insert(friendships).values({ requesterId, recipientId, status: "pending" });
+  return { status: "pending" as const, friendshipId: Number(created[0].insertId) };
+}
+
+export async function respondToFriendship(recipientId: number, friendshipId: number, response: "accepted" | "rejected") {
+  const db = await requireDb();
+  const [request] = await db.select().from(friendships).where(and(eq(friendships.id, friendshipId), eq(friendships.recipientId, recipientId), eq(friendships.status, "pending"))).limit(1);
+  if (!request) throw new Error("Friend request not found.");
+  await db.update(friendships).set({ status: response, updatedAt: new Date() }).where(eq(friendships.id, friendshipId));
+  return { status: response, friendshipId };
+}
+
 async function findPost(postId: number) {
   const db = await requireDb();
   const [post] = await db.select().from(posts).where(eq(posts.id, postId)).limit(1);
@@ -329,6 +416,7 @@ export async function toggleLike(userId: number, postId: number) {
   const [existing] = await db.select().from(likes).where(and(eq(likes.userId, userId), eq(likes.postId, postId))).limit(1);
   if (existing) { await db.delete(likes).where(eq(likes.id, existing.id)); return { liked: false }; }
   const post = await findPost(postId);
+  await assertCanAccessPost(userId, post);
   await db.insert(likes).values({ userId, postId });
   await notify({ recipientId: post.authorId, actorId: userId, postId, type: "like", message: "liked your post" });
   return { liked: true };
@@ -336,9 +424,9 @@ export async function toggleLike(userId: number, postId: number) {
 
 export async function toggleRepost(userId: number, postId: number) {
   const db = await requireDb();
-  const [existing] = await db.select().from(reposts).where(and(eq(reposts.userId, userId), eq(reposts.postId, postId))).limit(1);
-  if (existing) { await db.delete(reposts).where(eq(reposts.id, existing.id)); return { reposted: false }; }
+  const [existing] = await db.select().from(reposts).where(and(eq(reposts.userId, userId), eq(reposts.postId, postId))).limit(1);  if (existing) { await db.delete(reposts).where(eq(reposts.id, existing.id)); return { reposted: false }; }
   const post = await findPost(postId);
+  await assertCanAccessPost(userId, post);
   await db.insert(reposts).values({ userId, postId });
   await notify({ recipientId: post.authorId, actorId: userId, postId, type: "repost", message: "reposted your post" });
   return { reposted: true };
@@ -347,6 +435,7 @@ export async function toggleRepost(userId: number, postId: number) {
 export async function addComment(userId: number, postId: number, content: string) {
   const db = await requireDb();
   const post = await findPost(postId);
+  await assertCanAccessPost(userId, post);
   const [created] = await db.insert(comments).values({ authorId: userId, postId, content });
   const commentId = Number(created.insertId);
   await notify({ recipientId: post.authorId, actorId: userId, postId, commentId, type: "comment", message: "commented on your post" });
@@ -360,14 +449,19 @@ export async function createReport(reporterId: number, postId: number, category:
   await db.insert(reports).values({ reporterId, postId, category, details: details || null });
 }
 
-export async function searchCircle(query: string) {
+export async function searchCircle(query: string, viewerId?: number) {
   const db = await requireDb();
   const needle = `%${query}%`;
+  const friendIds = viewerId ? await getFriendIds(viewerId) : new Set<number>();
   const [people, matchingPosts] = await Promise.all([
-    db.select({ id: users.id, name: users.name, username: users.username, avatarUrl: users.avatarUrl, bio: users.bio, country: users.country, madhhabPreference: users.madhhabPreference }).from(users).where(or(like(users.name, needle), like(users.username, needle), like(users.bio, needle))).limit(20),
-    db.select({ id: posts.id, content: posts.content, hashtags: posts.hashtags, createdAt: posts.createdAt, authorName: users.name, authorUsername: users.username }).from(posts).innerJoin(users, eq(posts.authorId, users.id)).where(and(eq(posts.moderationStatus, "published"), or(like(posts.content, needle), like(posts.hashtags, needle)))).orderBy(desc(posts.createdAt)).limit(20),
+    db.select({ id: users.id, name: users.name, username: users.username, avatarUrl: users.avatarUrl, bio: users.bio, country: users.country, madhhabPreference: users.madhhabPreference, profileVisibility: users.profileVisibility }).from(users).where(or(like(users.name, needle), like(users.username, needle), like(users.bio, needle))).limit(20),
+    db.select({ id: posts.id, authorId: posts.authorId, visibility: posts.visibility, content: posts.content, hashtags: posts.hashtags, createdAt: posts.createdAt, authorName: users.name, authorUsername: users.username }).from(posts).innerJoin(users, eq(posts.authorId, users.id)).where(and(eq(posts.moderationStatus, "published"), or(like(posts.content, needle), like(posts.hashtags, needle)))).orderBy(desc(posts.createdAt)).limit(20),
   ]);
-  return { people, posts: matchingPosts };
+  const canViewAuthor = (authorId: number, visibility: "public" | "friends") => visibility === "public" || (viewerId !== undefined && (authorId === viewerId || friendIds.has(authorId)));
+  return {
+    people: people.filter(person => canViewAuthor(person.id, person.profileVisibility)).map(({ profileVisibility: _profileVisibility, ...person }) => person),
+    posts: matchingPosts.filter(post => canViewAuthor(post.authorId, post.visibility)).map(({ authorId: _authorId, visibility: _visibility, ...post }) => post),
+  };
 }
 
 export async function listNotifications(userId: number) {

@@ -7,6 +7,7 @@ import AuthPage from "./pages/AuthPage";
 import ChatPage from "./pages/ChatPage";
 import NotFound from "./pages/NotFound";
 import PlatformPage from "./pages/PlatformPage";
+import PrivacyPage from "./pages/PrivacyPage";
 import { Route, Switch } from "wouter";
 
 function Router() {
@@ -20,6 +21,7 @@ function Router() {
       <Route path="/rules"><PlatformPage kind="rules" /></Route>
       <Route path="/profile"><PlatformPage kind="profile" /></Route>
       <Route path="/admin"><PlatformPage kind="admin" /></Route>
+      <Route path="/privacy" component={PrivacyPage} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>

@@ -14,6 +14,8 @@ import { useLocation } from "wouter";
 
 type Attachment = { id?: number; kind: "image" | "video" | "file" | "link"; url: string; storageKey?: string | null; filename?: string | null; mimeType?: string | null; sizeBytes?: number | null };
 type FeedPost = { id: number; author: { id: number; name: string | null; username: string | null; avatarUrl: string | null }; content: string; createdAt: Date; attachments: Attachment[]; likeCount: number; commentCount: number; repostCount: number; likedByViewer: boolean; repostedByViewer: boolean };
+type MediaFilter = "all" | Attachment["kind"];
+type VisibilityFilter = "all" | "public";
 
 const reportCategories = ["scam", "lie", "brainrot", "haram imagery"] as const;
 const containsArabic = (value: string) => /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/.test(value);
@@ -110,6 +112,8 @@ export default function Home() {
   const [, setLocation] = useLocation();
   const utils = trpc.useUtils();
   const [feedMode, setFeedMode] = useState<"following" | "chronological" | "trending">("following");
+  const [mediaFilter, setMediaFilter] = useState<MediaFilter>(() => (typeof window !== "undefined" ? (localStorage.getItem("ummah-media-filter") as MediaFilter | null) || "all" : "all"));
+  const [visibilityFilter, setVisibilityFilter] = useState<VisibilityFilter>(() => (typeof window !== "undefined" ? (localStorage.getItem("ummah-visibility-filter") as VisibilityFilter | null) || "all" : "all"));
   const [content, setContent] = useState("");
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [linkUrl, setLinkUrl] = useState("");
@@ -132,7 +136,17 @@ export default function Home() {
     observer.observe(document.body, { childList: true, subtree: true });
     return () => observer.disconnect();
   }, []);
-  const feedQuery = trpc.social.feed.useQuery({ mode: feedMode });
+  useEffect(() => {
+    const syncMediaFilter = () => setMediaFilter((localStorage.getItem("ummah-media-filter") as MediaFilter | null) || "all");
+    window.addEventListener("ummah-media-filter", syncMediaFilter);
+    return () => window.removeEventListener("ummah-media-filter", syncMediaFilter);
+  }, []);
+  useEffect(() => {
+    const syncVisibilityFilter = () => setVisibilityFilter((localStorage.getItem("ummah-visibility-filter") as VisibilityFilter | null) || "all");
+    window.addEventListener("ummah-visibility-filter", syncVisibilityFilter);
+    return () => window.removeEventListener("ummah-visibility-filter", syncVisibilityFilter);
+  }, []);
+  const feedQuery = trpc.social.feed.useQuery({ mode: feedMode, ...(mediaFilter === "all" ? {} : { mediaType: mediaFilter }), ...(visibilityFilter === "all" ? {} : { visibilityScope: visibilityFilter }) });
   const createPost = trpc.social.createPost.useMutation({ onSuccess: async () => { await utils.social.feed.invalidate(); setContent(""); setAttachments([]); setLinkUrl(""); setShowLink(false); setAcknowledged(false); setRulesOpen(false); toast.success("Your post is now part of the circle."); }, onError: error => toast.error(error.message) });
   const upload = trpc.social.uploadAttachment.useMutation({ onError: error => toast.error(error.message) });
   const like = trpc.social.toggleLike.useMutation({ onSuccess: () => utils.social.feed.invalidate(), onError: error => toast.error(error.message) });

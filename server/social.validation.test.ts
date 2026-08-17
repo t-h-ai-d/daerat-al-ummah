@@ -41,4 +41,9 @@ describe("social input safeguards", () => {
     const caller = appRouter.createCaller(createAuthenticatedContext());
     await expect(caller.social.uploadAttachment({ filename: "payload.exe", mimeType: "application/x-msdownload", dataBase64: "aGVsbG8=" })).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
+
+  it("accepts only supported public-feed visibility filter values", async () => {
+    const caller = appRouter.createCaller(createAuthenticatedContext());
+    await expect(caller.social.feed({ mode: "following", visibilityScope: "friends" as never })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
 });

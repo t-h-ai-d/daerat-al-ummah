@@ -30,6 +30,9 @@ export const users = mysqlTable("users", {
   accountStatus: mysqlEnum("accountStatus", ["active", "warned", "banned"])
     .default("active")
     .notNull(),
+  profileVisibility: mysqlEnum("profileVisibility", ["public", "friends"])
+    .default("public")
+    .notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
@@ -83,11 +86,13 @@ export const posts = mysqlTable(
     authorId: int("authorId")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
+    title: varchar("title", { length: 240 }),
     content: text("content").notNull(),
+    textStyle: mysqlEnum("textStyle", ["default", "serif", "emphasis"]).default("default").notNull(),
     imageUrl: text("imageUrl"),
     linkUrl: text("linkUrl"),
     hashtags: varchar("hashtags", { length: 512 }),
-    visibility: mysqlEnum("visibility", ["public", "followers"]).default("public").notNull(),
+    visibility: mysqlEnum("visibility", ["public", "friends"]).default("public").notNull(),
     moderationStatus: mysqlEnum("moderationStatus", ["published", "under_review", "removed"])
       .default("published")
       .notNull(),
@@ -115,6 +120,27 @@ export const follows = mysqlTable(
   table => [
     uniqueIndex("follows_pair_unique").on(table.followerId, table.followingId),
     index("follows_following_idx").on(table.followingId),
+  ],
+);
+
+export const friendships = mysqlTable(
+  "friendships",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    requesterId: int("requesterId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    recipientId: int("recipientId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    status: mysqlEnum("status", ["pending", "accepted", "rejected"]).default("pending").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => [
+    uniqueIndex("friendships_requester_recipient_unique").on(table.requesterId, table.recipientId),
+    index("friendships_recipient_status_idx").on(table.recipientId, table.status),
+    index("friendships_requester_status_idx").on(table.requesterId, table.status),
   ],
 );
 
