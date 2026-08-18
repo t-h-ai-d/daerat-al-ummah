@@ -64,3 +64,11 @@
 - [x] Remove the remaining Manus-linked browser session that still renders the deleted account in the active client.
 - [x] Document the account-independent public-access behavior and the requirements to move the platform to user-controlled hosting, database, and storage.
 - [x] Prepare a free-tier, user-owned deployment package and migration path: private GitHub export, verified Cloudflare-first infrastructure plan, data/storage replacement map, and deployment checklist. Actual deployment requires the owner’s Cloudflare account.
+- [ ] Remove only the confirmed duplicate platform identity that still blocks the user’s email or username from new local registration.
+- [ ] Verify the intended username is not independently reserved and confirm both fresh-registration identifiers are free.
+- [ ] Complete a full migration from managed services to user-controlled code hosting, database, file storage, authentication configuration, and application hosting.
+- [x] Fix the external GitHub build by including the required patched dependency artifact and a Node/Express runtime configuration instead of static-only hosting.
+- [x] Create a downloadable ZIP of the complete source, dependency patch, and migration documentation without runtime secrets or managed data.
+- [x] Provide the exact free Node/MySQL deployment settings, environment variables, and independent backup plan for new platform data.
+- [x] Add an exact MySQL export, restore, and off-host backup workflow for the new independent database.
+- [x] Document required, optional, and unsupported environment variables for an external Node/MySQL deployment.
