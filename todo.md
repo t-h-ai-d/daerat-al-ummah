@@ -150,7 +150,8 @@
 - [ ] Visually verify the empty and populated comment-thread states using real member data.
 - [x] Diagnose and fix the failed community-creation flow: community links now generate automatically from the name and accept Arabic or English safely.
 - [ ] Verify successful community creation from the deployed Arabic interface while signed in with a real member account.
-- [ ] Push the latest community-creation repair with the complete member-feature release to GitHub and the connected Render deployment.
+- [x] Push the latest community-creation repair with the complete member-feature release to GitHub.
+- [ ] Confirm that the connected Render deployment has built the latest community-creation repair.
 - [x] Audit the requested member features—local authentication, posts, friendships, messages, mentions, comments, uploads, communities, emoji/GIF, reports, Arabic RTL, finite feeds, and account controls—and repair any remaining member-facing gaps before release.
 - [x] Replace remaining English member-interface copy in discovery and notifications with Arabic RTL copy, without altering member-written content.
 - [x] Add a browser-push subscription data model and authenticated server procedures that never expose notification credentials to members.
