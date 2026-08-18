@@ -63,4 +63,4 @@
 - [x] Clear stale browser sessions for deleted platform accounts while preserving intended signed-out public browsing routes.
 - [x] Remove the remaining Manus-linked browser session that still renders the deleted account in the active client.
 - [x] Document the account-independent public-access behavior and the requirements to move the platform to user-controlled hosting, database, and storage.
-- [ ] Prepare a free-tier, user-owned deployment package and migration path that replaces managed hosting, database, and file storage.
+- [x] Prepare a free-tier, user-owned deployment package and migration path: private GitHub export, verified Cloudflare-first infrastructure plan, data/storage replacement map, and deployment checklist. Actual deployment requires the owner’s Cloudflare account.
