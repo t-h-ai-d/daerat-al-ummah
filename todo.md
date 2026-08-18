@@ -77,7 +77,7 @@
 - [x] Remove the wouter patched-dependency requirement so external builders that install before copying source files do not fail.
 - [x] Verify and publish the patch-free frozen-lockfile build for the external host.
 - [x] Push the patch-free package metadata and lockfile to GitHub, then save the verified deployment state.
-- [ ] Update the external deployment notes and retry the host build from the corrected commit.
+- [x] Update the external deployment notes and replace the unsuitable static-host retry with a validated Cloudflare Worker deployment route.
 - [x] Verify the Cloudflare hosting, database, and upload architecture that is compatible with this Node/MySQL application.
 - [x] Write and publish a complete Cloudflare deployment, secrets, and backup guide for the platform.
 - [x] Push the Cloudflare guide and research notes to the private repository, then save the documented deployment state.
@@ -87,3 +87,10 @@
 - [x] Add Worker, Hyperdrive, and R2 bindings without breaking the existing Node deployment path.
 - [x] Validate a Cloudflare Worker build and document the account-specific deployment command.
 - [x] Push the validated Cloudflare Worker source, configuration, generated binding types, and deployment guide to GitHub.
+- [ ] Verify readable duplicate-email and duplicate-username database checks, then verify the exact intended registration identifiers are not reserved.
+- [ ] Enable Cloudflare R2 for the new account and create the required private `daerat-media` bucket.
+- [ ] Replace the placeholder Hyperdrive binding, configure the MySQL connection and `JWT_SECRET`, then redeploy the Worker.
+- [x] Select and verify a non-Cloudflare external Node host, MySQL database, and object-storage combination compatible with this application: Render, Aiven MySQL, and Backblaze B2.
+- [ ] Configure the selected independent host and replace the abandoned Cloudflare deployment path in the user handoff.
+- [x] Add a Render Blueprint and an exact Render, Aiven MySQL, and Backblaze B2 deployment guide without committing secrets.
+- [ ] Push the validated Render, Aiven, and Backblaze configuration to the private GitHub repository.

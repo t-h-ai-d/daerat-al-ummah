@@ -43,7 +43,14 @@ async function createRuntimeDb() {
     });
     return drizzle({ client });
   }
-  if (ENV.databaseUrl) return drizzle(ENV.databaseUrl);
+  if (ENV.databaseUrl) {
+    if (!ENV.databaseSsl) return drizzle(ENV.databaseUrl);
+    const client = await createConnection({
+      uri: ENV.databaseUrl,
+      ssl: { rejectUnauthorized: true },
+    });
+    return drizzle({ client });
+  }
   return null;
 }
 
