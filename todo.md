@@ -186,3 +186,5 @@
 - [x] Diagnose why a member’s persisted posts are absent after signing back in, distinguishing a feed filter issue from a production database-access issue.
 - [x] Diagnose and repair the live local-registration database query failure so duplicate checks return a clear Arabic result instead of raw SQL errors.
 - [x] Make the report action discoverable on posts by other members while preserving the three-dot menu for full author controls.
+- [x] Allow high-risk executables and scripts only as quarantined attachments, with download links suppressed until an external scan marks them safe.
+- [ ] Add a server-side external-scanner activation path and document its credential, privacy, and 650 MB scanner-limit constraints.

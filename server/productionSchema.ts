@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseTlsDatabaseUrl } from "./db";
 
-type CompatibilityColumn = { table: "users" | "posts"; name: string; definition: string };
+type CompatibilityColumn = { table: "users" | "posts" | "postAttachments"; name: string; definition: string };
 
 export const independentSchemaCompatibilityColumns: CompatibilityColumn[] = [
   { table: "users", name: "passwordHash", definition: "varchar(255) NULL" },
@@ -18,6 +18,7 @@ export const independentSchemaCompatibilityColumns: CompatibilityColumn[] = [
   { table: "posts", name: "communityId", definition: "int NULL" },
   { table: "posts", name: "textStyle", definition: "enum('default','serif','emphasis') NOT NULL DEFAULT 'default'" },
   { table: "posts", name: "moderationStatus", definition: "enum('published','under_review','removed') NOT NULL DEFAULT 'published'" },
+  { table: "postAttachments", name: "scanStatus", definition: "enum('pending','clean','blocked') NOT NULL DEFAULT 'clean'" },
 ];
 
 export function missingIndependentSchemaCompatibilityColumns(existingColumns: Iterable<string>) {
@@ -52,7 +53,7 @@ export function independentSchemaBootstrapStatements(sql = readFileSync(join(pro
 
 async function ensureIndependentSchemaCompatibility(connection: Awaited<ReturnType<typeof createConnection>>) {
   const [rows] = await connection.query(
-    "SELECT TABLE_NAME AS tableName, COLUMN_NAME AS columnName FROM information_schema.columns WHERE table_schema = DATABASE() AND TABLE_NAME IN ('users', 'posts')",
+    "SELECT TABLE_NAME AS tableName, COLUMN_NAME AS columnName FROM information_schema.columns WHERE table_schema = DATABASE() AND TABLE_NAME IN ('users', 'posts', 'postAttachments')",
   );
   const existingColumns = (rows as Array<{ tableName: string; columnName: string }>)
     .map(row => `${row.tableName}.${row.columnName}`);

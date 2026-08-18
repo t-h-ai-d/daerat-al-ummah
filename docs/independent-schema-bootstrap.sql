@@ -172,6 +172,7 @@ CREATE TABLE IF NOT EXISTS `postAttachments` (
   `filename` varchar(255),
   `mimeType` varchar(128),
   `sizeBytes` int,
+  `scanStatus` enum('pending','clean','blocked') NOT NULL DEFAULT 'clean',
   `createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `attachments_post_idx` (`postId`),

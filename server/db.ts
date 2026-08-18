@@ -35,6 +35,7 @@ import {
   users,
 } from "../drizzle/schema";
 import { AI_MODERATION_MODEL, reviewPostWithAi } from "./aiModeration";
+import { attachmentScanStatus } from "./attachmentSecurity";
 import { ENV } from "./_core/env";
 import { getHyperdriveBinding } from "./_core/runtime";
 
@@ -435,7 +436,12 @@ export async function createPost(userId: number, data: { title?: string; content
     creatorMessage: verdict.userMessage,
   });
   if (data.attachments.length) {
-    await db.insert(postAttachments).values(data.attachments.map(item => ({ postId, uploaderId: userId, ...item })));
+    await db.insert(postAttachments).values(data.attachments.map(item => ({
+      postId,
+      uploaderId: userId,
+      ...item,
+      scanStatus: attachmentScanStatus(item.filename, item.mimeType),
+    })));
   }
   if (moderationStatus === "published") {
     await notifyMentions(userId, data.content, { postId });
@@ -443,6 +449,16 @@ export async function createPost(userId: number, data: { title?: string; content
     await notify({ recipientId: userId, postId, type: "moderation", message: verdict.userMessage });
   }
   return { postId, moderation: { status: moderationStatus, category: verdict.category, message: verdict.userMessage, source: verdict.source } };
+}
+
+export async function getPostAttachmentScanStatus(storageKey: string) {
+  const db = await requireDb();
+  const [attachment] = await db
+    .select({ scanStatus: postAttachments.scanStatus })
+    .from(postAttachments)
+    .where(eq(postAttachments.storageKey, storageKey))
+    .limit(1);
+  return attachment?.scanStatus ?? null;
 }
 
 export async function listMyPosts(authorId: number) {

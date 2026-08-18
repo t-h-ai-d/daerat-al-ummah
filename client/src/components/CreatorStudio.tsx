@@ -81,6 +81,7 @@ export default function CreatorStudio() {
         body: file,
       });
       if (!response.ok) throw new Error("تعذّر رفع الملف إلى التخزين الآمن.");
+      if (prepared.scanStatus === "pending") toast.message("رُفع الملف إلى الحجر الأمني؛ لن يُفتح أو يُنزّل قبل اكتمال الفحص الخارجي.");
       return {
         kind: prepared.kind,
         url: prepared.url,

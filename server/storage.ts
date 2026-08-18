@@ -2,6 +2,8 @@ import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import type { Express } from "express";
 import { getR2MediaBinding } from "./_core/runtime";
+import { getPostAttachmentScanStatus } from "./db";
+import { isAttachmentDownloadAllowed } from "./attachmentSecurity";
 
 const SIGNED_URL_TTL_SECONDS = 60 * 10;
 
@@ -137,6 +139,13 @@ export function registerObjectStorageRoutes(app: Express) {
     }
 
     try {
+      if (key.includes("/posts/") || key.includes("/quarantine/")) {
+        const scanStatus = await getPostAttachmentScanStatus(key);
+        if (!isAttachmentDownloadAllowed(scanStatus)) {
+          res.status(scanStatus ? 423 : 404).send(scanStatus === "blocked" ? "Attachment blocked by security scan" : "Attachment is quarantined pending a security scan");
+          return;
+        }
+      }
       const media = getR2MediaBinding();
       if (media) {
         const object = await media.get(key);

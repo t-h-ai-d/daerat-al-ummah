@@ -4,6 +4,7 @@ import * as db from "../db";
 import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
 import { storageCreatePresignedUpload, storagePut } from "../storage";
 import { sendPostReportEmail } from "../reportEmail";
+import { attachmentScanStatus, requiresAttachmentQuarantine } from "../attachmentSecurity";
 
 export const MAX_ATTACHMENT_BYTES = 1_073_741_824;
 export const MAX_BASE64_ATTACHMENT_BYTES = 50_000_000;
@@ -21,22 +22,11 @@ export const attachmentSchema = z.object({
 
 export const communitySlugSchema = z.string().trim().toLowerCase().min(3).max(96).regex(/^[a-zA-Z0-9\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF-]+$/, "استخدم حروفًا أو أرقامًا أو شرطات فقط، بالعربية أو الإنجليزية.");
 
-const executableOrScriptExtension = /\.(?:exe|msi|msix|app|dmg|pkg|deb|rpm|apk|bat|cmd|com|scr|ps1|sh|bash|zsh|vbs|vbe|js|jse|wsf|wsh|jar|dll|so|dylib|iso)$/i;
-
 function attachmentKind(mimeType: string): "image" | "gif" | "video" | "file" {
   if (mimeType === "image/gif") return "gif";
   if (mimeType.startsWith("image/")) return "image";
   if (mimeType.startsWith("video/")) return "video";
   return "file";
-}
-
-function assertSafeAttachmentFilename(filename: string) {
-  if (executableOrScriptExtension.test(filename.trim())) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: "الملفات التنفيذية والبرمجية تُحجز حتى يكتمل ربط الفحص الخارجي؛ لا يمكن نشرها أو تنزيلها الآن.",
-    });
-  }
 }
 
 function safeFilename(filename: string) {
@@ -123,26 +113,29 @@ export const socialRouter = router({
   prepareAttachmentUpload: protectedProcedure
     .input(z.object({ filename: z.string().trim().min(1).max(255), mimeType: z.string().trim().min(1).max(128), sizeBytes: z.number().int().positive().max(MAX_ATTACHMENT_BYTES) }))
     .mutation(async ({ ctx, input }) => {
-      assertSafeAttachmentFilename(input.filename);
       const mimeType = input.mimeType || "application/octet-stream";
-      const result = await storageCreatePresignedUpload(`${ctx.user.id}/posts/${safeFilename(input.filename)}`, mimeType);
+      const scanStatus = attachmentScanStatus(input.filename, mimeType);
+      const prefix = requiresAttachmentQuarantine(input.filename, mimeType) ? "quarantine" : "posts";
+      const result = await storageCreatePresignedUpload(`${ctx.user.id}/${prefix}/${safeFilename(input.filename)}`, mimeType);
       return {
         ...result,
         filename: input.filename,
         mimeType,
         sizeBytes: input.sizeBytes,
         kind: attachmentKind(mimeType),
+        scanStatus,
         sharedLimitBytes: MAX_ATTACHMENT_BYTES,
       };
     }),
   uploadAttachment: protectedProcedure
     .input(z.object({ filename: z.string().min(1).max(255), mimeType: z.string().min(1).max(128), dataBase64: z.string().min(1).max(MAX_ATTACHMENT_BASE64_CHARS) }))
     .mutation(async ({ ctx, input }) => {
-      assertSafeAttachmentFilename(input.filename);
       const bytes = Buffer.from(input.dataBase64, "base64");
       if (!bytes.length || bytes.length > MAX_BASE64_ATTACHMENT_BYTES) throw new TRPCError({ code: "PAYLOAD_TOO_LARGE", message: "الرفع القديم عبر Base64 محدود بـ50 ميغابايت؛ استخدم الرفع المباشر للملفات الأكبر." });
-      const result = await storagePut(`${ctx.user.id}/posts/${safeFilename(input.filename)}`, bytes, input.mimeType);
-      return { ...result, filename: input.filename, mimeType: input.mimeType, sizeBytes: bytes.length, kind: attachmentKind(input.mimeType) };
+      const scanStatus = attachmentScanStatus(input.filename, input.mimeType);
+      const prefix = requiresAttachmentQuarantine(input.filename, input.mimeType) ? "quarantine" : "posts";
+      const result = await storagePut(`${ctx.user.id}/${prefix}/${safeFilename(input.filename)}`, bytes, input.mimeType);
+      return { ...result, filename: input.filename, mimeType: input.mimeType, sizeBytes: bytes.length, kind: attachmentKind(input.mimeType), scanStatus };
     }),
   uploadAvatar: protectedProcedure
     .input(z.object({ filename: z.string().min(1).max(255), mimeType: z.string().startsWith("image/").max(128), dataBase64: z.string().min(1).max(10_000_000) }))

@@ -251,6 +251,7 @@ export const postAttachments = mysqlTable(
     filename: varchar("filename", { length: 255 }),
     mimeType: varchar("mimeType", { length: 128 }),
     sizeBytes: int("sizeBytes"),
+    scanStatus: mysqlEnum("scanStatus", ["pending", "clean", "blocked"]).notNull().default("clean"),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
   },
   table => [

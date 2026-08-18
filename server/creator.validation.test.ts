@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { TrpcContext } from "./_core/context";
 import { appRouter } from "./routers";
 import { assertLocalAccountDeletionAllowed, assertPostOwnership } from "./db";
+import { attachmentScanStatus, isAttachmentDownloadAllowed } from "./attachmentSecurity";
 
 const ctx = {
   user: {
@@ -36,9 +37,9 @@ describe("creator controls validation", () => {
     await expect(caller.social.deletePost({ postId: 0 })).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
 
-  it("rejects an executable attachment before storage", async () => {
-    const caller = appRouter.createCaller(ctx);
-    await expect(caller.social.uploadAttachment({ filename: "blocked.exe", mimeType: "application/octet-stream", dataBase64: "dGVzdA==" })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  it("places an executable attachment in quarantine before it can be delivered", () => {
+    expect(attachmentScanStatus("blocked.exe", "application/octet-stream")).toBe("pending");
+    expect(isAttachmentDownloadAllowed("pending")).toBe(false);
   });
 
   it("accepts only image MIME types for direct avatar uploads", async () => {

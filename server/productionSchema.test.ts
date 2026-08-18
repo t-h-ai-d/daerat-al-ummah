@@ -31,7 +31,7 @@ describe("independent production schema guard", () => {
     ]));
   });
 
-  it("adds only legacy account and post columns that are absent", () => {
+  it("adds only legacy account, post, and attachment-security columns that are absent", () => {
     const missing = missingIndependentSchemaCompatibilityColumns([
       "users.id",
       "users.openId",
@@ -39,6 +39,8 @@ describe("independent production schema guard", () => {
       "posts.id",
       "posts.authorId",
       "posts.content",
+      "postAttachments.id",
+      "postAttachments.storageKey",
     ]);
     expect(missing.map(column => `${column.table}.${column.name}`)).toEqual(expect.arrayContaining([
       "users.passwordHash",
@@ -46,6 +48,7 @@ describe("independent production schema guard", () => {
       "users.profileVisibility",
       "posts.communityId",
       "posts.moderationStatus",
+      "postAttachments.scanStatus",
     ]));
     expect(missing.map(column => `${column.table}.${column.name}`)).not.toContain("users.email");
   });

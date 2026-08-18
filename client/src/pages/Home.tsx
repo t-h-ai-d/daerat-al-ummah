@@ -23,6 +23,7 @@ type Attachment = {
   filename?: string | null;
   mimeType?: string | null;
   sizeBytes?: number | null;
+  scanStatus?: "pending" | "clean" | "blocked";
 };
 
 type FeedPost = {
@@ -61,6 +62,9 @@ function getInitials(value?: string | null) {
 }
 
 function AttachmentPreview({ attachment }: { attachment: Attachment }) {
+  if (attachment.scanStatus && attachment.scanStatus !== "clean") {
+    return <div className="mt-4 flex items-center gap-3 rounded-xl border border-[#ead7a3] bg-[#fffaf0] p-3"><span className="grid h-9 w-9 place-items-center rounded-lg bg-[#f5e7c4] text-[#896c1f]"><ShieldAlert size={17} /></span><div className="min-w-0 flex-1"><p className="truncate text-xs font-bold text-[#6f5415]">{attachment.filename || "ملف مرفق"}</p><p className="mt-0.5 text-[11px] text-[#896c1f]">{attachment.scanStatus === "blocked" ? "حُظر هذا الملف بعد الفحص الأمني." : "ملف في الحجر الأمني بانتظار الفحص الخارجي."}</p></div><span className="rounded-full bg-[#f5e7c4] px-2.5 py-1 text-[10px] font-extrabold text-[#795c16]">{attachment.scanStatus === "blocked" ? "محظور" : "قيد الفحص"}</span></div>;
+  }
   if (attachment.kind === "image" || attachment.kind === "gif") {
     return <div className="relative mt-4"><img src={attachment.url} alt={attachment.filename || (attachment.kind === "gif" ? "صورة GIF مرفقة" : "صورة مرفقة")} className={`max-h-[440px] w-full rounded-2xl border border-[#e0e8de] ${attachment.kind === "gif" ? "object-contain bg-[#f7faf6]" : "object-cover"}`} /><span className="absolute right-3 top-3 rounded-full bg-[#163e33]/90 px-2.5 py-1 text-[10px] font-extrabold text-white">{attachment.kind === "gif" ? "صورة متحركة GIF" : "صورة"}</span></div>;
   }
@@ -167,7 +171,8 @@ export default function Home() {
       if (!response.ok) throw new Error("تعذّر رفع الملف إلى التخزين الآمن.");
       const { uploadUrl: _uploadUrl, sharedLimitBytes: _sharedLimitBytes, ...attachment } = prepared;
       setAttachments(current => [...current, attachment]);
-      toast.success("تم رفع " + file.name + ".");
+      if (prepared.scanStatus === "pending") toast.message("رُفع الملف إلى الحجر الأمني؛ لن يُفتح أو يُنزّل قبل اكتمال الفحص الخارجي.");
+      else toast.success("تم رفع " + file.name + ".");
     } catch (error) {
       const message = error instanceof Error && error.message ? error.message : "تعذّر رفع المرفق.";
       toast.error(message + " إن استمر الخطأ، تحقّق من إعداد CORS في Backblaze B2.");

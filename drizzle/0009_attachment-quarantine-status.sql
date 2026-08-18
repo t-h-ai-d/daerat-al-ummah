@@ -1,0 +1,1 @@
+ALTER TABLE `postAttachments` ADD `scanStatus` enum('pending','clean','blocked') DEFAULT 'clean' NOT NULL;

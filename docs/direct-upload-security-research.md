@@ -12,6 +12,10 @@ Backblaze permits standard individual files up to 5 GiB; files beyond that requi
 
 VirusTotal private scanning requires a server-side API key and accepts normal uploads up to 32 MB; its large-file flow uses a one-time upload URL and accepts up to 650 MB. VirusTotal notes that files over 200 MB can be difficult for engines to inspect reliably.[3] [4] The public API is unsuitable for a commercial or community product, so the site must use a private-scanning plan or another server-side scanning service before claiming a completed antivirus integration.
 
+The application now stores executable and script-like attachments under a dedicated `quarantine/` storage prefix and records `scanStatus = pending`. The post feed displays a locked **«قيد الفحص»** card rather than an image, video player, or download link; the protected attachment route also refuses every non-`clean` object. This means `.exe`, `.msi`, `.bat`, shell scripts, installers, and similar high-risk files can be uploaded under the same 1 GiB attachment limit but cannot be opened by members while awaiting a verdict.
+
+The remaining activation step is intentionally separate: configure a server-only private-scanning credential such as `VIRUSTOTAL_API_KEY` in Render and connect a scanner worker that can retrieve quarantined objects privately, submit only files within the provider's supported size limit, then update each record to `clean` or `blocked`. Files larger than 650 MB must remain quarantined or use a scanner that explicitly supports their size; they must never be marked clean merely because they are too large to scan. Do not expose the scanner key to browser code, and do not send community files to a public-scanning endpoint without an explicit privacy review.
+
 ## References
 
 [1]: https://www.backblaze.com/blog/cors-correction-developer-insight-on-the-backblaze-b2-command-line/ "Backblaze B2 CORS and presigned direct uploads"
