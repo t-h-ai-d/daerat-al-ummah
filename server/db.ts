@@ -461,6 +461,25 @@ export async function getPostAttachmentScanStatus(storageKey: string) {
   return attachment?.scanStatus ?? null;
 }
 
+export async function isPostAttachmentStored(storageKey: string) {
+  const db = await requireDb();
+  const [attachment] = await db
+    .select({ id: postAttachments.id })
+    .from(postAttachments)
+    .where(eq(postAttachments.storageKey, storageKey))
+    .limit(1);
+  return Boolean(attachment);
+}
+
+export async function updatePendingAttachmentScanStatus(storageKey: string, scanStatus: "clean" | "blocked") {
+  const db = await requireDb();
+  const result = await db
+    .update(postAttachments)
+    .set({ scanStatus })
+    .where(and(eq(postAttachments.storageKey, storageKey), eq(postAttachments.scanStatus, "pending")));
+  return Number(result[0].affectedRows ?? 0) > 0;
+}
+
 export async function listMyPosts(authorId: number) {
   const db = await requireDb();
   const mine = await db.select().from(posts).where(eq(posts.authorId, authorId)).orderBy(desc(posts.createdAt)).limit(50);
@@ -717,9 +736,11 @@ export async function requestFriendship(requesterId: number, recipientId: number
   }
   if (existing) {
     await db.update(friendships).set({ requesterId, recipientId, status: "pending", updatedAt: new Date() }).where(eq(friendships.id, existing.id));
+    await notify({ recipientId, actorId: requesterId, type: "follow", message: "أرسل لك طلب صداقة — افتح ملفك لقبوله أو رفضه." });
     return { status: "pending" as const, friendshipId: existing.id };
   }
   const created = await db.insert(friendships).values({ requesterId, recipientId, status: "pending" });
+  await notify({ recipientId, actorId: requesterId, type: "follow", message: "أرسل لك طلب صداقة — افتح ملفك لقبوله أو رفضه." });
   await deliverBrowserPush(recipientId, { title: "طلب صداقة جديد", body: "لديك طلب صداقة جديد في دائرة الأمة.", url: "/profile", tag: `friendship-${recipientId}` });
   return { status: "pending" as const, friendshipId: Number(created[0].insertId) };
 }

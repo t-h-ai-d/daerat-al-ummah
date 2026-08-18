@@ -13,4 +13,5 @@ export const ENV = {
   get vapidPublicKey() { return getRuntimeEnv().VAPID_PUBLIC_KEY ?? ""; },
   get vapidPrivateKey() { return getRuntimeEnv().VAPID_PRIVATE_KEY ?? ""; },
   get vapidSubject() { return getRuntimeEnv().VAPID_SUBJECT ?? "mailto:ssbmbwuugame@gmail.com"; },
+  get virusTotalApiKey() { return getRuntimeEnv().VIRUSTOTAL_API_KEY ?? ""; },
 };

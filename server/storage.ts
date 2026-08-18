@@ -1,6 +1,7 @@
-import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import type { Express } from "express";
+import { Readable } from "node:stream";
 import { getR2MediaBinding } from "./_core/runtime";
 import { getPostAttachmentScanStatus } from "./db";
 import { isAttachmentDownloadAllowed } from "./attachmentSecurity";
@@ -100,6 +101,19 @@ export async function storageGet(relKey: string): Promise<{ key: string; url: st
   return { key, url: uploadRouteForKey(key) };
 }
 
+export async function storageDelete(relKey: string): Promise<void> {
+  const key = normalizeKey(relKey);
+  const media = getR2MediaBinding();
+  if (media) {
+    await media.delete(key);
+    return;
+  }
+
+  const config = resolveObjectStorageConfig();
+  const client = createObjectStorageClient(config);
+  await client.send(new DeleteObjectCommand({ Bucket: config.bucket, Key: key }));
+}
+
 export async function storageGetSignedUrl(relKey: string): Promise<string> {
   const config = resolveObjectStorageConfig();
   const client = createObjectStorageClient(config);
@@ -108,6 +122,26 @@ export async function storageGetSignedUrl(relKey: string): Promise<string> {
     new GetObjectCommand({ Bucket: config.bucket, Key: normalizeKey(relKey) }),
     { expiresIn: SIGNED_URL_TTL_SECONDS },
   );
+}
+
+export async function storageGetPrivateReadStream(relKey: string): Promise<{ body: Readable; contentLength?: number }> {
+  const key = normalizeKey(relKey);
+  const media = getR2MediaBinding();
+  if (media) {
+    const object = await media.get(key);
+    if (!object) throw new Error("The quarantined object was not found.");
+    return { body: Readable.from(Buffer.from(await object.arrayBuffer())) };
+  }
+
+  const config = resolveObjectStorageConfig();
+  const client = createObjectStorageClient(config);
+  const object = await client.send(new GetObjectCommand({ Bucket: config.bucket, Key: key }));
+  if (!object.Body) throw new Error("The quarantined object was not found.");
+  if (object.Body instanceof Readable) return { body: object.Body, contentLength: object.ContentLength };
+  if (typeof (object.Body as ReadableStream).getReader === "function") {
+    return { body: Readable.fromWeb(object.Body as never), contentLength: object.ContentLength };
+  }
+  throw new Error("The object storage response is not streamable.");
 }
 
 export async function storageCreatePresignedUpload(

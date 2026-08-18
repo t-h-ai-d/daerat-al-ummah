@@ -2,9 +2,10 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import * as db from "../db";
 import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
-import { storageCreatePresignedUpload, storagePut } from "../storage";
+import { storageCreatePresignedUpload, storageDelete, storagePut } from "../storage";
 import { sendPostReportEmail } from "../reportEmail";
 import { attachmentScanStatus, requiresAttachmentQuarantine } from "../attachmentSecurity";
+import { queuePrivateAttachmentScan } from "../virusTotalPrivateScanner";
 
 export const MAX_ATTACHMENT_BYTES = 1_073_741_824;
 export const MAX_BASE64_ATTACHMENT_BYTES = 50_000_000;
@@ -18,6 +19,23 @@ export const attachmentSchema = z.object({
   filename: z.string().max(255).nullable().optional(),
   mimeType: z.string().max(128).nullable().optional(),
   sizeBytes: z.number().int().positive().max(MAX_ATTACHMENT_BYTES).nullable().optional(),
+});
+
+function isAudioOrVideoAttachment(attachment: z.infer<typeof attachmentSchema>) {
+  return attachment.kind === "video" || attachment.mimeType?.toLowerCase().startsWith("audio/") === true || attachment.mimeType?.toLowerCase().startsWith("video/") === true;
+}
+
+export const createPostInputSchema = z.object({
+  title: z.string().trim().max(240).optional(),
+  content: z.string().trim().min(1).max(5000),
+  textStyle: z.enum(["default", "serif", "emphasis"]).default("default"),
+  visibility: z.enum(["public", "friends"]).default("public"),
+  communityId: z.number().int().positive().optional(),
+  attachments: z.array(attachmentSchema).default([]),
+}).superRefine((input, context) => {
+  if (input.attachments.filter(isAudioOrVideoAttachment).length > 1) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ["attachments"], message: "يُسمح بمرفق فيديو أو صوت واحد فقط في المنشور." });
+  }
 });
 
 export const communitySlugSchema = z.string().trim().toLowerCase().min(3).max(96).regex(/^[a-zA-Z0-9\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF-]+$/, "استخدم حروفًا أو أرقامًا أو شرطات فقط، بالعربية أو الإنجليزية.");
@@ -55,8 +73,21 @@ export const socialRouter = router({
     .input(z.object({ communityId: z.number().int().positive() }))
     .mutation(({ ctx, input }) => db.leaveCommunity(ctx.user.id, input.communityId)),
   createPost: protectedProcedure
-    .input(z.object({ title: z.string().trim().max(240).optional(), content: z.string().trim().min(1).max(5000), textStyle: z.enum(["default", "serif", "emphasis"]).default("default"), visibility: z.enum(["public", "friends"]).default("public"), communityId: z.number().int().positive().optional(), attachments: z.array(attachmentSchema).max(5).default([]) }))
-    .mutation(({ ctx, input }) => db.createPost(ctx.user.id, input)),
+    .input(createPostInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      const created = await db.createPost(ctx.user.id, input);
+      for (const attachment of input.attachments) {
+        if (!attachment.storageKey || !requiresAttachmentQuarantine(attachment.filename, attachment.mimeType)) continue;
+        if (!attachment.storageKey.startsWith(`${ctx.user.id}/quarantine/`)) continue;
+        void queuePrivateAttachmentScan({
+          storageKey: attachment.storageKey,
+          filename: attachment.filename || "quarantined-file",
+          mimeType: attachment.mimeType || "application/octet-stream",
+          sizeBytes: attachment.sizeBytes || 0,
+        });
+      }
+      return created;
+    }),
   myPosts: protectedProcedure.query(({ ctx }) => db.listMyPosts(ctx.user.id)),
   deletePost: protectedProcedure
     .input(z.object({ postId: z.number().int().positive() }))
@@ -126,6 +157,14 @@ export const socialRouter = router({
         scanStatus,
         sharedLimitBytes: MAX_ATTACHMENT_BYTES,
       };
+    }),
+  discardAttachmentUpload: protectedProcedure
+    .input(z.object({ storageKey: z.string().trim().min(1).max(512) }))
+    .mutation(async ({ ctx, input }) => {
+      if (!input.storageKey.startsWith(`${ctx.user.id}/`)) throw new TRPCError({ code: "FORBIDDEN", message: "لا يمكنك حذف مرفق لا يخصّك." });
+      if (await db.isPostAttachmentStored(input.storageKey)) throw new TRPCError({ code: "CONFLICT", message: "لا يمكن حذف مرفق بعد نشره ضمن منشور." });
+      await storageDelete(input.storageKey);
+      return { deleted: true as const };
     }),
   uploadAttachment: protectedProcedure
     .input(z.object({ filename: z.string().min(1).max(255), mimeType: z.string().min(1).max(128), dataBase64: z.string().min(1).max(MAX_ATTACHMENT_BASE64_CHARS) }))

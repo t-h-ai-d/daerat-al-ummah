@@ -187,4 +187,12 @@
 - [x] Diagnose and repair the live local-registration database query failure so duplicate checks return a clear Arabic result instead of raw SQL errors.
 - [x] Make the report action discoverable on posts by other members while preserving the three-dot menu for full author controls.
 - [x] Allow high-risk executables and scripts only as quarantined attachments, with download links suppressed until an external scan marks them safe.
-- [ ] Add a server-side external-scanner activation path and document its credential, privacy, and 650 MB scanner-limit constraints.
+- [x] Add a server-side external-scanner activation path and document its credential, privacy, and 650 MB scanner-limit constraints.
+- [x] Validate the supplied VirusTotal private-scanning credential and activate verdict updates for quarantined attachments.
+- [ ] Remove the leaked private scanner credential from all repository files and rotate it before publishing scanner code.
+- [ ] Add safe Arabic image and video viewers plus controlled attachment download, share, and repost actions that honor quarantine status.
+- [ ] Add participant-controlled conversation deletion and sender-controlled message deletion with strict server-side authorization.
+- [ ] Capture and fix the current live Backblaze attachment-upload error for image, video, and general file uploads before any further media features.
+- [ ] Let members select multiple attachments, remove any selected file before publishing, and permit only one combined video or audio attachment per post.
+- [x] Repair friendship-request visibility and acceptance actions so requested members can see and respond to incoming requests.
+- [x] Replace the profile avatar URL-only field with secure direct image upload and preview controls.

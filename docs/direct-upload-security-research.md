@@ -4,6 +4,8 @@
 
 Backblaze B2 supports an S3-compatible, server-generated presigned URL flow. The application server creates a short-lived URL, while the member browser performs the upload directly to B2 without receiving storage credentials. This avoids Base64 request inflation and Render request-body timeouts. Browser uploads require a bucket CORS rule allowing the deployed application origin to use `PUT`, `GET`, and `HEAD` with the required content-type header.
 
+The B2 endpoint must be copied from the bucket details and use the HTTPS form `https://s3.<region>.backblazeb2.com`; the region must match that endpoint. The B2 S3 API accepts both path-style and virtual-hosted bucket addressing, but all generated upload URLs must remain HTTPS.[7] [8]
+
 Backblaze describes presigned direct uploads to B2 and explains that CORS must allow the intended browser origin.[1] Amazon’s S3 documentation confirms that a presigned `PUT` URL gives the recipient upload capability without exposing the creator’s underlying credentials, and that the sent content type must match the signature.[2]
 
 Backblaze permits standard individual files up to 5 GiB; files beyond that require a multipart large-file workflow. This release will therefore use one shared practical **1 GiB per attachment** limit for every format—image, video, document, archive, or quarantined executable—rather than a different limit by file type. The five-attachment limit per post remains in place.[5] [6]
@@ -24,3 +26,5 @@ The remaining activation step is intentionally separate: configure a server-only
 [4]: https://docs.virustotal.com/reference/files-upload-url "VirusTotal: Large-file upload URL"
 [5]: https://www.backblaze.com/docs/cloud-storage-files "Backblaze B2 individual file limits"
 [6]: https://www.backblaze.com/docs/cloud-storage-large-files "Backblaze B2 large file flow"
+[7]: https://www.backblaze.com/docs/cloud-storage-use-the-aws-sdk-for-javascript-v3-with-backblaze-b2 "Backblaze: AWS SDK for JavaScript V3"
+[8]: https://www.backblaze.com/docs/cloud-storage-call-the-s3-compatible-api "Backblaze: S3-compatible API endpoints"

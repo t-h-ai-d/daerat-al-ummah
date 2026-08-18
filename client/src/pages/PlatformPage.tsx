@@ -8,8 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
-import { Bell, FileSearch, Loader2, Search, ShieldCheck, UserPlus, UsersRound } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Bell, FileSearch, ImageUp, Loader2, Search, ShieldCheck, UserPlus, UsersRound } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 
 type PageKind = "explore" | "notifications" | "rules" | "profile";
@@ -128,6 +128,15 @@ function Profile() {
   const [country, setCountry] = useState("");
   const [madhhab, setMadhhab] = useState("");
   const [username, setUsername] = useState("");
+  const avatarInput = useRef<HTMLInputElement>(null);
+  const uploadAvatar = trpc.social.uploadAvatar.useMutation({
+    onSuccess: async stored => {
+      await update.mutateAsync({ avatarUrl: stored.url });
+      await utils.social.myProfile.invalidate();
+      toast.success("تم حفظ الصورة الشخصية.");
+    },
+    onError: error => toast.error(error.message),
+  });
 
   useEffect(() => {
     if (!profile.data) return;
@@ -146,6 +155,21 @@ function Profile() {
       madhhabPreference: madhhab.trim(),
     });
   };
+  const chooseAvatar = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) { toast.error("اختر صورة فقط للملف الشخصي."); return; }
+    if (file.size > 6_000_000) { toast.error("الصورة الشخصية يجب ألا تتجاوز 6 ميغابايت."); return; }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataBase64 = String(reader.result || "").split(",")[1];
+      if (!dataBase64) { toast.error("تعذّرت قراءة الصورة."); return; }
+      uploadAvatar.mutate({ filename: file.name, mimeType: file.type, dataBase64 });
+    };
+    reader.onerror = () => toast.error("تعذّرت قراءة الصورة.");
+    reader.readAsDataURL(file);
+  };
   const avatarUrl = profile.data?.avatarUrl || "";
   const initials = (profile.data?.name || user?.name || "UC").split(" ").map(part => part[0]).join("").slice(0, 2);
 
@@ -162,7 +186,7 @@ function Profile() {
         <div className="grid gap-5">
           <label className="grid gap-2 text-xs font-bold text-[#496a5c]">نبذة<Textarea value={bio} onChange={event => setBio(event.target.value)} placeholder="اكتب نبذة قصيرة عن النفع الذي تأمل تقديمه." className="min-h-24 rounded-xl border-[#dbe5dc] text-sm font-normal" /></label>
           <label className="grid gap-2 text-xs font-bold text-[#496a5c]">اسم المستخدم<Input value={username} onChange={event => setUsername(event.target.value)} placeholder="اختياري — حروف أو أرقام أو شرطات سفلية" className="h-10 rounded-xl border-[#dbe5dc] text-sm font-normal" /></label>
-          <p className="rounded-xl border border-[#dce8dc] bg-[#f8fbf7] px-3 py-2 text-xs leading-5 text-[#5a766a]">لتغيير الصورة الشخصية، استخدم زر <strong>رفع صورة</strong> في استوديو المنشئ أدناه. لا تحتاج إلى رابط.</p>
+          <div className="rounded-xl border border-[#dce8dc] bg-[#f8fbf7] p-3"><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-bold text-[#496a5c]">الصورة الشخصية</p><p className="mt-1 text-xs leading-5 text-[#5a766a]">ارفع صورة مباشرة من جهازك. لا تحتاج إلى رابط.</p></div><input ref={avatarInput} type="file" accept="image/*" className="hidden" onChange={chooseAvatar} /><Button type="button" variant="outline" onClick={() => avatarInput.current?.click()} disabled={uploadAvatar.isPending || update.isPending} className="rounded-xl border-[#b9d2be] bg-white text-xs text-[#155a40] hover:bg-[#edf7ee]">{uploadAvatar.isPending ? <Loader2 className="animate-spin" size={14} /> : <ImageUp size={14} />}رفع صورة</Button></div></div>
           <div className="grid gap-5 sm:grid-cols-2"><label className="grid gap-2 text-xs font-bold text-[#496a5c]">البلد<Input value={country} onChange={event => setCountry(event.target.value)} placeholder="اختياري" className="h-10 rounded-xl border-[#dbe5dc] text-sm font-normal" /></label><label className="grid gap-2 text-xs font-bold text-[#496a5c]">التوجه المذهبي<Input value={madhhab} onChange={event => setMadhhab(event.target.value)} placeholder="اختياري — يُعرض باحترام" className="h-10 rounded-xl border-[#dbe5dc] text-sm font-normal" /></label></div>
           <Button onClick={save} disabled={update.isPending} className="w-fit rounded-xl bg-[#0d4937] text-xs hover:bg-[#176047]">{update.isPending && <Loader2 className="animate-spin" size={14} />}حفظ الملف</Button>
         </div>

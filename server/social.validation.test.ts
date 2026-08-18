@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
-import { attachmentSchema, communitySlugSchema, reportCategorySchema } from "./routers/social";
+import { attachmentSchema, communitySlugSchema, createPostInputSchema, reportCategorySchema } from "./routers/social";
 import { assertPostOwnership, assertReportablePost, interleaveFeedAuthors } from "./db";
 import { attachmentScanStatus, isAttachmentDownloadAllowed, requiresAttachmentQuarantine } from "./attachmentSecurity";
+import { readFileSync } from "node:fs";
 
 function createAuthenticatedContext(): TrpcContext {
   return {
@@ -105,6 +106,30 @@ describe("social input safeguards", () => {
   it("recognizes GIF as a supported post attachment kind", () => {
     expect(attachmentSchema.safeParse({ kind: "gif", url: "https://media.example.org/reminder.gif" }).success).toBe(true);
     expect(attachmentSchema.safeParse({ kind: "animated-image", url: "https://media.example.org/reminder.gif" }).success).toBe(false);
+  });
+
+  it("allows any number of non-media attachments but only one combined audio or video attachment", () => {
+    const files = Array.from({ length: 12 }, (_, index) => ({ kind: "file" as const, url: `https://storage.example.org/file-${index}.pdf`, filename: `file-${index}.pdf` }));
+    expect(createPostInputSchema.safeParse({ content: "مرفقات نافعة", attachments: files }).success).toBe(true);
+    expect(createPostInputSchema.safeParse({ content: "مقطع واحد", attachments: [...files, { kind: "video", url: "https://storage.example.org/lesson.mp4", mimeType: "video/mp4" }] }).success).toBe(true);
+    expect(createPostInputSchema.safeParse({ content: "مقطعان", attachments: [{ kind: "video", url: "https://storage.example.org/lesson.mp4", mimeType: "video/mp4" }, { kind: "file", url: "https://storage.example.org/audio.mp3", mimeType: "audio/mpeg" }] }).success).toBe(false);
+  });
+
+  it("exposes a protected pre-post attachment discard action", () => {
+    expect("social.discardAttachmentUpload" in appRouter._def.procedures).toBe(true);
+  });
+
+  it("validates friendship targets and records requests as visible in-app notifications", async () => {
+    const caller = appRouter.createCaller(createAuthenticatedContext());
+    await expect(caller.social.requestFriendship({ targetUserId: 0 })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    const databaseSource = readFileSync(new URL("./db.ts", import.meta.url), "utf8");
+    expect(databaseSource).toContain('message: "أرسل لك طلب صداقة — افتح ملفك لقبوله أو رفضه."');
+  });
+
+  it("exposes the protected image-only profile avatar uploader", async () => {
+    expect("social.uploadAvatar" in appRouter._def.procedures).toBe(true);
+    const caller = appRouter.createCaller(createAuthenticatedContext());
+    await expect(caller.social.uploadAvatar({ filename: "avatar.txt", mimeType: "text/plain" as never, dataBase64: "YQ==" })).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
 
   it("balances consecutive authors without using engagement scores", () => {

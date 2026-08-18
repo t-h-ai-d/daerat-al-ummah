@@ -14,6 +14,7 @@ export type R2Object = {
 export type R2BucketBinding = {
   put(key: string, value: Buffer | Uint8Array | string, options?: { httpMetadata?: { contentType?: string } }): Promise<unknown>;
   get(key: string): Promise<R2Object | null>;
+  delete(key: string): Promise<void>;
 };
 
 export type CloudflareWorkerEnv = Record<string, unknown> & {

@@ -19,6 +19,8 @@ services:
         value: "false"
       - key: OPENAI_API_KEY
         sync: false
+      - key: VIRUSTOTAL_API_KEY
+        sync: false
       - key: RESEND_API_KEY
         sync: false
       - key: RESEND_FROM_EMAIL
