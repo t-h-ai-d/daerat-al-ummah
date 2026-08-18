@@ -84,9 +84,12 @@ describe("social input safeguards", () => {
     expect(assertPostOwnership({ id: 31 })).toEqual({ id: 31 });
   });
 
-  it("rejects unsupported upload types before any storage call", async () => {
+  it("exposes direct-upload tickets and rejects executable filenames before any storage call", async () => {
+    const socialProcedures = appRouter._def.procedures;
+    expect("social.prepareAttachmentUpload" in socialProcedures).toBe(true);
     const caller = appRouter.createCaller(createAuthenticatedContext());
     await expect(caller.social.uploadAttachment({ filename: "payload.exe", mimeType: "application/x-msdownload", dataBase64: "aGVsbG8=" })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    await expect(caller.social.prepareAttachmentUpload({ filename: "payload.exe", mimeType: "application/x-msdownload", sizeBytes: 1024 })).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
 
   it("accepts only supported public-feed visibility filter values", async () => {

@@ -143,6 +143,18 @@
 - [ ] Verify avatar and post attachment uploads on the live Render and Backblaze B2 deployment after redeployment.
 - [ ] Reproduce the reported live file-upload failure with a safe small test attachment after the latest Render deployment and capture the exact server response.
 - [ ] Verify Backblaze B2 storage credentials, endpoint, bucket, and public-object delivery on Render without exposing secret values.
+- [ ] Replace Base64-only attachment uploads so large videos upload directly to Backblaze B2 without failing the Render request body limit.
+- [ ] Define and enforce separate safe limits for images, documents, and video files, with clear Arabic feedback before upload begins.
+- [ ] Broaden accepted file types safely while rejecting executable and otherwise dangerous attachment formats.
+- [ ] Integrate malware scanning for uploaded attachments without exposing member files or third-party credentials in the browser.
+- [ ] Show clear Arabic image, GIF, video, document, upload-progress, and scan-status indicators in post attachments.
+- [ ] Prioritize resolution of the reported video `Failed to fetch` and `Invalid URL` failure before unrelated post-control repairs.
+- [ ] Support the widest safe practical set of attachment formats rather than a fixed document allowlist, while blocking executable and script payloads.
+- [ ] Replace the 50 MB Base64 request ceiling with direct-storage uploads and a much larger practical attachment limit.
+- [ ] Accept executable attachments only into a non-downloadable quarantine state until an external antivirus scan returns a clean result.
+- [ ] Surface pending, clean, and blocked scan states for every attachment without claiming that antivirus scanning is infallible.
+- [ ] Enforce one explicitly stated shared maximum size per attachment regardless of image, video, document, archive, or executable type.
+- [ ] Replace Creator Studio’s remaining Base64 attachment path and 50 MB wording with the same direct-upload shared-limit workflow used by home and communities.
 - [x] Remove the remaining mailto report link from the member-facing rules page and describe the in-app server-delivered report flow.
 - [x] Replace the community attachment upload fallback with explicit Arabic error feedback.
 - [ ] Verify the community three-dot menu, author controls, and report form against a real rendered community post.
@@ -169,3 +181,7 @@
 - [x] Add an opt-in Arabic browser-notification control with clear permission, enabled, denied, and unsupported-browser states.
 - [x] Deliver browser notifications only for direct messages, friendship requests, mentions, and replies, respecting the member’s enabled preference.
 - [x] Document the Render VAPID environment variables and the one-command key-generation step required to activate browser notifications in production.
+- [x] Diagnose and repair the live local-registration database query failure so duplicate checks return a clear Arabic result instead of raw SQL errors.
+- [x] Diagnose and repair unexpected sign-outs after browser restarts, without extending session duration beyond a reasonable security boundary.
+- [x] Diagnose why a member’s persisted posts are absent after signing back in, distinguishing a feed filter issue from a production database-access issue.
+- [x] Diagnose and repair the live local-registration database query failure so duplicate checks return a clear Arabic result instead of raw SQL errors.

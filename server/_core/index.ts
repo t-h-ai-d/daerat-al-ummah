@@ -3,7 +3,7 @@ import { createServer } from "http";
 import net from "net";
 import { createApp } from "./app";
 import { serveStatic, setupVite } from "./vite";
-import { ensureIndependentBrowserPushSchema } from "../productionSchema";
+import { ensureIndependentDatabaseSchema } from "../productionSchema";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -26,7 +26,7 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 
 async function startServer() {
   if (process.env.NODE_ENV === "production") {
-    await ensureIndependentBrowserPushSchema();
+    await ensureIndependentDatabaseSchema();
   }
   const app = createApp();
   const server = createServer(app);

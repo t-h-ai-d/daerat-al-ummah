@@ -36,9 +36,9 @@ describe("creator controls validation", () => {
     await expect(caller.social.deletePost({ postId: 0 })).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
 
-  it("rejects an unsupported post attachment type before storage", async () => {
+  it("rejects an executable attachment before storage", async () => {
     const caller = appRouter.createCaller(ctx);
-    await expect(caller.social.uploadAttachment({ filename: "blocked.bin", mimeType: "application/octet-stream", dataBase64: "dGVzdA==" })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    await expect(caller.social.uploadAttachment({ filename: "blocked.exe", mimeType: "application/octet-stream", dataBase64: "dGVzdA==" })).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
 
   it("accepts only image MIME types for direct avatar uploads", async () => {

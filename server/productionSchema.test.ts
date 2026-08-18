@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { browserPushSubscriptionTableSql, independentDatabaseTlsOptions } from "./productionSchema";
+import { browserPushSubscriptionTableSql, independentDatabaseTlsOptions, independentSchemaBootstrapStatements, missingIndependentSchemaCompatibilityColumns } from "./productionSchema";
 
 describe("independent production schema guard", () => {
   it("creates only the additive browser subscription table when it is absent", () => {
@@ -15,5 +15,38 @@ describe("independent production schema guard", () => {
       "mysql://member:secret@host.tidbcloud.com:4000/ummah?ssl-mode=REQUIRED",
     );
     expect(options.ssl).toEqual({ rejectUnauthorized: false });
+  });
+
+  it("bootstraps every core independent-platform table using idempotent creation statements", () => {
+    const statements = independentSchemaBootstrapStatements(`
+      CREATE TABLE IF NOT EXISTS \`users\` (\`id\` int PRIMARY KEY);
+      CREATE TABLE IF NOT EXISTS \`posts\` (\`id\` int PRIMARY KEY);
+      CREATE TABLE IF NOT EXISTS \`browserPushSubscriptions\` (\`id\` int PRIMARY KEY);
+    `);
+    expect(statements).toHaveLength(3);
+    expect(statements).toEqual(expect.arrayContaining([
+      expect.stringContaining("CREATE TABLE IF NOT EXISTS `users`"),
+      expect.stringContaining("CREATE TABLE IF NOT EXISTS `posts`"),
+      expect.stringContaining("CREATE TABLE IF NOT EXISTS `browserPushSubscriptions`"),
+    ]));
+  });
+
+  it("adds only legacy account and post columns that are absent", () => {
+    const missing = missingIndependentSchemaCompatibilityColumns([
+      "users.id",
+      "users.openId",
+      "users.email",
+      "posts.id",
+      "posts.authorId",
+      "posts.content",
+    ]);
+    expect(missing.map(column => `${column.table}.${column.name}`)).toEqual(expect.arrayContaining([
+      "users.passwordHash",
+      "users.username",
+      "users.profileVisibility",
+      "posts.communityId",
+      "posts.moderationStatus",
+    ]));
+    expect(missing.map(column => `${column.table}.${column.name}`)).not.toContain("users.email");
   });
 });

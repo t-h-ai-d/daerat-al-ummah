@@ -2,10 +2,11 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import * as db from "../db";
 import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
-import { storagePut } from "../storage";
+import { storageCreatePresignedUpload, storagePut } from "../storage";
 import { sendPostReportEmail } from "../reportEmail";
 
-export const MAX_ATTACHMENT_BYTES = 50_000_000;
+export const MAX_ATTACHMENT_BYTES = 1_073_741_824;
+export const MAX_BASE64_ATTACHMENT_BYTES = 50_000_000;
 export const MAX_ATTACHMENT_BASE64_CHARS = 68_000_000;
 export const reportCategorySchema = z.enum(["scam", "lie", "brainrot", "haram imagery"]);
 
@@ -20,14 +21,23 @@ export const attachmentSchema = z.object({
 
 export const communitySlugSchema = z.string().trim().toLowerCase().min(3).max(96).regex(/^[a-zA-Z0-9\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF-]+$/, "استخدم حروفًا أو أرقامًا أو شرطات فقط، بالعربية أو الإنجليزية.");
 
-const safeMimeTypes = new Set([
-  "application/pdf",
-  "text/plain",
-  "application/msword",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  "application/vnd.ms-excel",
-  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-]);
+const executableOrScriptExtension = /\.(?:exe|msi|msix|app|dmg|pkg|deb|rpm|apk|bat|cmd|com|scr|ps1|sh|bash|zsh|vbs|vbe|js|jse|wsf|wsh|jar|dll|so|dylib|iso)$/i;
+
+function attachmentKind(mimeType: string): "image" | "gif" | "video" | "file" {
+  if (mimeType === "image/gif") return "gif";
+  if (mimeType.startsWith("image/")) return "image";
+  if (mimeType.startsWith("video/")) return "video";
+  return "file";
+}
+
+function assertSafeAttachmentFilename(filename: string) {
+  if (executableOrScriptExtension.test(filename.trim())) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "الملفات التنفيذية والبرمجية تُحجز حتى يكتمل ربط الفحص الخارجي؛ لا يمكن نشرها أو تنزيلها الآن.",
+    });
+  }
+}
 
 function safeFilename(filename: string) {
   return filename.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 120) || "upload";
@@ -110,18 +120,29 @@ export const socialRouter = router({
   updateProfile: protectedProcedure
     .input(z.object({ username: z.string().trim().min(3).max(32).regex(/^[a-zA-Z0-9_\u0600-\u06FF]+$/).optional(), avatarUrl: z.string().trim().max(2000).optional(), bio: z.string().trim().max(500).optional(), country: z.string().trim().max(96).optional(), madhhabPreference: z.string().trim().max(48).optional(), profileVisibility: z.enum(["public", "friends"]).optional() }))
     .mutation(({ ctx, input }) => db.updateProfile(ctx.user.id, input)),
+  prepareAttachmentUpload: protectedProcedure
+    .input(z.object({ filename: z.string().trim().min(1).max(255), mimeType: z.string().trim().min(1).max(128), sizeBytes: z.number().int().positive().max(MAX_ATTACHMENT_BYTES) }))
+    .mutation(async ({ ctx, input }) => {
+      assertSafeAttachmentFilename(input.filename);
+      const mimeType = input.mimeType || "application/octet-stream";
+      const result = await storageCreatePresignedUpload(`${ctx.user.id}/posts/${safeFilename(input.filename)}`, mimeType);
+      return {
+        ...result,
+        filename: input.filename,
+        mimeType,
+        sizeBytes: input.sizeBytes,
+        kind: attachmentKind(mimeType),
+        sharedLimitBytes: MAX_ATTACHMENT_BYTES,
+      };
+    }),
   uploadAttachment: protectedProcedure
     .input(z.object({ filename: z.string().min(1).max(255), mimeType: z.string().min(1).max(128), dataBase64: z.string().min(1).max(MAX_ATTACHMENT_BASE64_CHARS) }))
     .mutation(async ({ ctx, input }) => {
-      const isImage = input.mimeType.startsWith("image/");
-      const isVideo = input.mimeType.startsWith("video/");
-      if (!isImage && !isVideo && !safeMimeTypes.has(input.mimeType)) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "نوع هذا الملف غير مدعوم." });
-      }
+      assertSafeAttachmentFilename(input.filename);
       const bytes = Buffer.from(input.dataBase64, "base64");
-      if (!bytes.length || bytes.length > MAX_ATTACHMENT_BYTES) throw new TRPCError({ code: "PAYLOAD_TOO_LARGE", message: "حجم المرفق يجب أن يكون 50 ميغابايت أو أقل." });
+      if (!bytes.length || bytes.length > MAX_BASE64_ATTACHMENT_BYTES) throw new TRPCError({ code: "PAYLOAD_TOO_LARGE", message: "الرفع القديم عبر Base64 محدود بـ50 ميغابايت؛ استخدم الرفع المباشر للملفات الأكبر." });
       const result = await storagePut(`${ctx.user.id}/posts/${safeFilename(input.filename)}`, bytes, input.mimeType);
-      return { ...result, filename: input.filename, mimeType: input.mimeType, sizeBytes: bytes.length, kind: input.mimeType === "image/gif" ? "gif" as const : isImage ? "image" as const : isVideo ? "video" as const : "file" as const };
+      return { ...result, filename: input.filename, mimeType: input.mimeType, sizeBytes: bytes.length, kind: attachmentKind(input.mimeType) };
     }),
   uploadAvatar: protectedProcedure
     .input(z.object({ filename: z.string().min(1).max(255), mimeType: z.string().startsWith("image/").max(128), dataBase64: z.string().min(1).max(10_000_000) }))

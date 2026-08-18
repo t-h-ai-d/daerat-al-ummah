@@ -34,7 +34,9 @@ export default function CreatorStudio() {
   const [visibility, setVisibility] = useState<"public" | "friends">("public");
   const [textStyle, setTextStyle] = useState<StyleChoice>("default");
   const [attachment, setAttachment] = useState<File | null>(null);
+  const [isAttachmentUploading, setIsAttachmentUploading] = useState(false);
   const uploadAvatar = trpc.social.uploadAvatar.useMutation();
+  const prepareAttachmentUpload = trpc.social.prepareAttachmentUpload.useMutation();
   const updateProfile = trpc.social.updateProfile.useMutation({ onSuccess: async () => { await utils.social.myProfile.invalidate(); toast.success("تم تحديث صورة الحساب."); } });
   const createPost = trpc.social.createPost.useMutation({
     onSuccess: async result => {
@@ -64,14 +66,41 @@ export default function CreatorStudio() {
     } catch (error) { toast.error(error instanceof Error ? error.message : "تعذر رفع الصورة."); }
   };
 
+  const uploadPostAttachment = async (file: File) => {
+    if (file.size > 1_073_741_824) throw new Error("الحد المشترك لكل مرفق هو 1 غيغابايت.");
+    setIsAttachmentUploading(true);
+    try {
+      const prepared = await prepareAttachmentUpload.mutateAsync({
+        filename: file.name,
+        mimeType: file.type || "application/octet-stream",
+        sizeBytes: file.size,
+      });
+      const response = await fetch(prepared.uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": prepared.mimeType },
+        body: file,
+      });
+      if (!response.ok) throw new Error("تعذّر رفع الملف إلى التخزين الآمن.");
+      return {
+        kind: prepared.kind,
+        url: prepared.url,
+        storageKey: prepared.key,
+        filename: prepared.filename,
+        mimeType: prepared.mimeType,
+        sizeBytes: prepared.sizeBytes,
+      };
+    } finally {
+      setIsAttachmentUploading(false);
+    }
+  };
+
   const publish = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!content.trim()) return toast.error("اكتب محتوى المنشور أولاً.");
     try {
       const attachments = [] as { kind: "image" | "gif" | "video" | "file"; url: string; storageKey?: string; filename?: string; mimeType?: string; sizeBytes?: number }[];
       if (attachment) {
-        if (attachment.size > 50_000_000) return toast.error("حجم المرفق يجب أن يكون 50 ميغابايت أو أقل.");
-        const stored = await trpcClientUpload(attachment, utils);
+        const stored = await uploadPostAttachment(attachment);
         attachments.push(stored);
       }
       await createPost.mutateAsync({ title: title.trim() || undefined, content: content.trim(), visibility, textStyle, attachments });
@@ -86,16 +115,10 @@ export default function CreatorStudio() {
       <div className="mt-6 flex flex-wrap items-center gap-4 rounded-2xl bg-[#f7faf6] p-4"><div className="h-14 w-14 overflow-hidden rounded-2xl bg-[#dce9df]">{profile.data?.avatarUrl ? <img src={profile.data.avatarUrl} alt="صورة الحساب" className="h-full w-full object-cover" /> : <div className="grid h-full place-items-center text-sm font-bold text-[#4e7665]">{(profile.data?.name || "ع").slice(0, 1)}</div>}</div><div className="min-w-0 flex-1"><p className="text-sm font-extrabold text-[#244a3c]">صورة الحساب</p><p className="mt-1 text-xs text-[#71897d]">PNG أو JPG أو WebP — حد أقصى 6 ميغابايت.</p></div><input ref={avatarInput} className="hidden" type="file" accept="image/*" onChange={event => { void setAvatar(event.target.files?.[0]); event.currentTarget.value = ""; }} /><Button type="button" variant="outline" disabled={uploadAvatar.isPending || updateProfile.isPending} onClick={() => avatarInput.current?.click()} className="rounded-xl"><ImageUp size={16} />رفع صورة</Button></div>
       <form onSubmit={event => { void publish(event); }} className="mt-7 border-t border-[#e7eee6] pt-6"><div className="flex items-center gap-2 text-sm font-extrabold text-[#244a3c]"><Type size={17} />منشور جديد</div><Input value={title} onChange={event => setTitle(event.target.value)} maxLength={240} placeholder="عنوان اختياري للمنشور" className="mt-4 h-11 rounded-xl border-[#d7e3d8] text-right" /><div className="relative mt-3"><Textarea value={content} onChange={event => setContent(event.target.value)} required maxLength={5000} placeholder="اكتب ما تريد مشاركته…" className="min-h-32 rounded-xl border-[#d7e3d8] pl-11 text-right leading-7" /><div className="absolute bottom-2 left-2"><EmojiPicker onSelect={emoji => setContent(current => `${current}${current ? " " : ""}${emoji}`)} /></div></div>
         <div className="mt-4 grid gap-3 sm:grid-cols-2"><div><p className="mb-2 text-xs font-bold text-[#49685c]">نمط النص</p><div className="flex flex-wrap gap-2">{(["default", "serif", "emphasis"] as const).map(style => <button key={style} type="button" onClick={() => setTextStyle(style)} className={`rounded-lg border px-3 py-2 text-xs font-bold ${textStyle === style ? "border-[#2b7758] bg-[#edf7ee] text-[#176047]" : "border-[#d7e3d8] text-[#678073]"}`}>{style === "default" ? "عادي" : style === "serif" ? "تقليدي" : "تأكيد"}</button>)}</div></div><div><p className="mb-2 text-xs font-bold text-[#49685c]">خصوصية المنشور</p><div className="flex gap-2"><button type="button" onClick={() => setVisibility("public")} className={`flex items-center gap-1 rounded-lg border px-3 py-2 text-xs font-bold ${visibility === "public" ? "border-[#2b7758] bg-[#edf7ee] text-[#176047]" : "border-[#d7e3d8] text-[#678073]"}`}><Globe2 size={14} />عام</button><button type="button" onClick={() => setVisibility("friends")} className={`flex items-center gap-1 rounded-lg border px-3 py-2 text-xs font-bold ${visibility === "friends" ? "border-[#2b7758] bg-[#edf7ee] text-[#176047]" : "border-[#d7e3d8] text-[#678073]"}`}><LockKeyhole size={14} />الأصدقاء</button></div></div></div>
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3"><div><input ref={mediaInput} className="hidden" type="file" accept="image/*,image/gif,video/*,.pdf,.txt,.doc,.docx,.xls,.xlsx" onChange={event => { const selected = event.target.files?.[0] ?? null; event.currentTarget.value = ""; if (selected && selected.size > 50_000_000) { toast.error("حجم المرفق يجب أن يكون 50 ميغابايت أو أقل."); return; } setAttachment(selected); }} /><Button type="button" variant="outline" onClick={() => mediaInput.current?.click()} className="rounded-xl"><FilePlus2 size={16} />{attachment ? attachment.name : "إضافة صورة أو GIF أو فيديو أو ملف"}</Button></div><Button type="submit" disabled={createPost.isPending} className="rounded-xl bg-[#0d4937] hover:bg-[#176047]">{createPost.isPending ? <Loader2 className="animate-spin" size={16} /> : <FileImage size={16} />}نشر</Button></div>
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3"><div><input ref={mediaInput} className="hidden" type="file" accept="*/*" onChange={event => { const selected = event.target.files?.[0] ?? null; event.currentTarget.value = ""; if (selected && selected.size > 1_073_741_824) { toast.error("الحد المشترك لكل مرفق هو 1 غيغابايت."); return; } setAttachment(selected); }} /><Button type="button" variant="outline" disabled={isAttachmentUploading} onClick={() => mediaInput.current?.click()} className="rounded-xl"><FilePlus2 size={16} />{attachment ? attachment.name : "إضافة ملف حتى 1 غيغابايت"}</Button></div><Button type="submit" disabled={createPost.isPending || isAttachmentUploading} className="rounded-xl bg-[#0d4937] hover:bg-[#176047]">{createPost.isPending || isAttachmentUploading ? <Loader2 className="animate-spin" size={16} /> : <FileImage size={16} />}نشر</Button></div>
       </form>
       <div className="mt-8 border-t border-[#e7eee6] pt-6"><h3 className="text-sm font-extrabold text-[#244a3c]">منشوراتي</h3><div className="mt-3 space-y-2">{posts.isLoading ? <p className="flex items-center gap-2 text-xs text-[#71897d]"><Loader2 className="animate-spin" size={14} />جارٍ تحميل منشوراتك…</p> : posts.data?.length ? posts.data.map(post => <div key={post.id} className="flex items-start justify-between gap-3 rounded-xl bg-[#f8fbf7] p-3"><div className="min-w-0"><p className="truncate text-sm font-bold text-[#294e40]">{post.title || post.content.slice(0, 80)}</p><p className="mt-1 text-xs text-[#758d82]">{post.visibility === "friends" ? "للأصدقاء فقط" : "عام"} · {post.moderationStatus === "under_review" ? "قيد مراجعة بشرية" : post.moderationStatus === "removed" ? "تمت الإزالة" : "منشور"} · {new Date(post.createdAt).toLocaleDateString("ar")}</p>{post.moderationStatus === "under_review" && <a href={ownerReviewMailto(post.id, post.title)} className="mt-2 inline-flex items-center gap-1 text-[11px] font-bold text-[#155a40] underline decoration-[#c6a04a] underline-offset-4"><Mail size={13} />مراسلة المالك للمراجعة</a>}</div><Button size="sm" variant="outline" disabled={deletePost.isPending} onClick={() => { if (window.confirm("هل تريد حذف هذا المنشور نهائيًا؟")) deletePost.mutate({ postId: post.id }); }} className="rounded-lg border-[#e9c8c2] text-[#a24f41] hover:bg-[#fff4f2]"><Trash2 size={14} />حذف</Button></div>) : <p className="text-xs text-[#748a7f]">لا توجد منشورات لك بعد.</p>}</div></div>
       <div className="mt-8 rounded-2xl border border-[#ecd1cc] bg-[#fff8f6] p-4"><div className="flex items-start gap-3"><UserRoundX className="mt-0.5 text-[#ad574a]" size={19} /><div><h3 className="text-sm font-extrabold text-[#7e352d]">بدء حساب جديد</h3><p className="mt-1 text-xs leading-5 text-[#92635b]">{canDeleteLocalAccount ? "يحذف هذا الحساب وكل بياناته من دائرة الأمة، ثم يمكنك التسجيل مجددًا بنفس البريد واسم المستخدم." : "هذا الحساب متصل بطريقة خارجية، وليس حسابًا محليًا بالبريد واسم المستخدم وكلمة المرور؛ لذلك لا يمكن حذفه من هذه الصفحة."}</p><Button type="button" size="sm" variant="outline" disabled={!canDeleteLocalAccount || deleteAccount.isPending} onClick={() => { if (window.confirm("سيُحذف حسابك ومنشوراتك ورسائلك وبياناتك نهائيًا. هل تريد المتابعة؟")) deleteAccount.mutate(); }} className="mt-3 rounded-lg border-[#dfb1aa] text-[#9d4338] hover:bg-[#fff1ee]"><Trash2 size={14} />{canDeleteLocalAccount ? "حذف حسابي وبدء جديد" : "الحذف غير متاح لهذا الحساب"}</Button></div></div></div>
     </div>
   </section>;
-}
-
-async function trpcClientUpload(file: File, utils: ReturnType<typeof trpc.useUtils>) {
-  const dataBase64 = await readFile(file);
-  const result = await utils.client.social.uploadAttachment.mutate({ filename: file.name, mimeType: file.type || "application/octet-stream", dataBase64 });
-  return { kind: result.kind, url: result.url, storageKey: result.key, filename: result.filename, mimeType: result.mimeType, sizeBytes: result.sizeBytes };
 }

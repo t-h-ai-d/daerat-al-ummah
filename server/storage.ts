@@ -108,6 +108,26 @@ export async function storageGetSignedUrl(relKey: string): Promise<string> {
   );
 }
 
+export async function storageCreatePresignedUpload(
+  relKey: string,
+  contentType = "application/octet-stream",
+): Promise<{ key: string; url: string; uploadUrl: string }> {
+  const key = appendHashSuffix(normalizeKey(relKey));
+  const config = resolveObjectStorageConfig();
+  const client = createObjectStorageClient(config);
+  const uploadUrl = await getSignedUrl(
+    client,
+    new PutObjectCommand({
+      Bucket: config.bucket,
+      Key: key,
+      ContentType: contentType,
+    }),
+    { expiresIn: SIGNED_URL_TTL_SECONDS },
+  );
+
+  return { key, url: uploadRouteForKey(key), uploadUrl };
+}
+
 export function registerObjectStorageRoutes(app: Express) {
   app.get("/uploads/*", async (req, res) => {
     const key = (req.params as Record<string, string>)[0];
