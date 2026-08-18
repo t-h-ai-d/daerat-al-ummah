@@ -102,7 +102,7 @@
 - [ ] Update Render configuration and documentation for the selected free database, then verify a fresh local registration.
 - [x] Adjust Aiven TLS verification for its `ssl-mode=REQUIRED` connection URI and verify the corrected startup configuration with type checks, production build, and safeguards.
 - [x] Initialize the 14-table fresh MySQL schema automatically before the first Render server start.
-- [ ] Push the combined Aiven TLS and automatic schema-startup fix to GitHub for Render to deploy.
+- [x] Push the combined Aiven TLS and automatic schema-startup fix to GitHub for Render to deploy.
 - [ ] Run the automatic schema-startup path against the fresh external MySQL database and verify all 14 tables exist before serving registrations.
 - [x] Correct the Aiven TLS URI parser and verify it with type checks, production build, and 26 safeguards tests.
 - [x] Push the Aiven TLS fix to GitHub so Render can redeploy the corrected service.
