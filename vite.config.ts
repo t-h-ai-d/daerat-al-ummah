@@ -168,6 +168,20 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    // The React vendor bundle is reviewed and cached separately; warn only when
+    // a production chunk grows beyond this practical threshold.
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes("node_modules")) return;
+          if (id.includes("react") || id.includes("scheduler")) return "react-vendor";
+          if (id.includes("@radix-ui") || id.includes("class-variance-authority") || id.includes("cmdk")) return "ui-vendor";
+          if (id.includes("lucide-react")) return "icons-vendor";
+          return "vendor";
+        },
+      },
+    },
   },
   server: {
     host: true,

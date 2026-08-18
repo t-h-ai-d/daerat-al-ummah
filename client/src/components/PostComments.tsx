@@ -27,7 +27,9 @@ export default function PostComments({ postId, commentCount }: PostCommentsProps
   const { isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
   const utils = trpc.useUtils();
-  const [expanded, setExpanded] = useState(false);
+  // Existing conversations should be visible like familiar social feeds; the
+  // toggle remains available for members who want to collapse a thread.
+  const [expanded, setExpanded] = useState(() => commentCount > 0);
   const [draft, setDraft] = useState("");
   const comments = trpc.social.postComments.useQuery({ postId }, { enabled: expanded });
   const addComment = trpc.social.addComment.useMutation({
