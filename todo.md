@@ -141,6 +141,8 @@
 - [x] Push the verified repair release to GitHub.
 - [ ] Redeploy the verified repair release to Render after the owner adds the Resend and VAPID secrets.
 - [ ] Verify avatar and post attachment uploads on the live Render and Backblaze B2 deployment after redeployment.
+- [ ] Reproduce the reported live file-upload failure with a safe small test attachment after the latest Render deployment and capture the exact server response.
+- [ ] Verify Backblaze B2 storage credentials, endpoint, bucket, and public-object delivery on Render without exposing secret values.
 - [x] Remove the remaining mailto report link from the member-facing rules page and describe the in-app server-delivered report flow.
 - [x] Replace the community attachment upload fallback with explicit Arabic error feedback.
 - [ ] Verify the community three-dot menu, author controls, and report form against a real rendered community post.
