@@ -86,4 +86,4 @@
 - [x] Audit Node-only APIs and server entry points that must be adapted for Cloudflare Workers.
 - [x] Add Worker, Hyperdrive, and R2 bindings without breaking the existing Node deployment path.
 - [x] Validate a Cloudflare Worker build and document the account-specific deployment command.
-- [ ] Push the validated Cloudflare Worker source, configuration, generated binding types, and deployment guide to GitHub.
+- [x] Push the validated Cloudflare Worker source, configuration, generated binding types, and deployment guide to GitHub.
