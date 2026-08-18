@@ -205,5 +205,5 @@
 - [x] Build a member-facing «استوديو المُنشِئ» page for drafts, post-format selection, and direct access to publishing tools.
 - [x] Align Creator Studio with the direct-upload, multi-attachment, attachment-only publishing workflow used on the main composer.
 - [x] Permit attachment-only community posts and give them the same Arabic upload recovery behavior as the main composer.
-- [ ] Diagnose and repair the live upload path that returns HTML instead of JSON, causing «Unexpected token '<'» and «Failed to fetch».
-- [ ] Ensure every composer uploads text, video, image, and file content through one user-safe flow that never exposes raw network or JSON parsing errors.
+- [x] Diagnose and repair the live upload path that returns HTML instead of JSON, causing «Unexpected token '<'» and «Failed to fetch».
+- [x] Ensure every composer uploads text, video, image, and file content through one user-safe flow that never exposes raw network or JSON parsing errors.
