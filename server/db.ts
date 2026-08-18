@@ -30,6 +30,21 @@ import {
 import { ENV } from "./_core/env";
 import { getHyperdriveBinding } from "./_core/runtime";
 
+export function parseTlsDatabaseUrl(databaseUrl: string) {
+  const parsed = new URL(databaseUrl);
+  const database = decodeURIComponent(parsed.pathname.replace(/^\//, ""));
+  if (!parsed.hostname || !database) throw new Error("DATABASE_URL must include a host and database name");
+
+  return {
+    host: parsed.hostname,
+    port: Number(parsed.port || 3306),
+    user: decodeURIComponent(parsed.username),
+    password: decodeURIComponent(parsed.password),
+    database,
+    ssl: { rejectUnauthorized: true },
+  };
+}
+
 async function createRuntimeDb() {
   const hyperdrive = getHyperdriveBinding();
   if (hyperdrive) {
@@ -45,10 +60,7 @@ async function createRuntimeDb() {
   }
   if (ENV.databaseUrl) {
     if (!ENV.databaseSsl) return drizzle(ENV.databaseUrl);
-    const client = await createConnection({
-      uri: ENV.databaseUrl,
-      ssl: { rejectUnauthorized: true },
-    });
+    const client = await createConnection(parseTlsDatabaseUrl(ENV.databaseUrl));
     return drizzle({ client });
   }
   return null;
