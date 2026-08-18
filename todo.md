@@ -93,4 +93,4 @@
 - [x] Select and verify a non-Cloudflare external Node host, MySQL database, and object-storage combination compatible with this application: Render, Aiven MySQL, and Backblaze B2.
 - [ ] Configure the selected independent host and replace the abandoned Cloudflare deployment path in the user handoff.
 - [x] Add a Render Blueprint and an exact Render, Aiven MySQL, and Backblaze B2 deployment guide without committing secrets.
-- [ ] Push the validated Render, Aiven, and Backblaze configuration to the private GitHub repository.
+- [x] Push the validated Render, Aiven, and Backblaze configuration to the private GitHub repository.
