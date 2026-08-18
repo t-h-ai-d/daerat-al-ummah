@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { ownerReviewMailto } from "@/lib/ownerReview";
+import { uploadAttachmentSafely } from "@/lib/attachmentUpload";
 import { trpc } from "@/lib/trpc";
 import { FileImage, FilePlus2, Globe2, ImageUp, Loader2, LockKeyhole, Mail, Palette, Save, Trash2, Type, UserRoundX, Video } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -22,7 +23,6 @@ type UploadedAttachment = {
 };
 
 const MAX_ATTACHMENT_BYTES = 1_073_741_824;
-const SMALL_UPLOAD_FALLBACK_BYTES = 50_000_000;
 const isAudioOrVideo = (mimeType?: string) => Boolean(mimeType?.toLowerCase().startsWith("audio/") || mimeType?.toLowerCase().startsWith("video/"));
 
 function readFile(file: File) {
@@ -50,7 +50,6 @@ export default function CreatorStudio() {
   const [isAttachmentUploading, setIsAttachmentUploading] = useState(false);
   const uploadAvatar = trpc.social.uploadAvatar.useMutation();
   const prepareAttachmentUpload = trpc.social.prepareAttachmentUpload.useMutation();
-  const uploadAttachment = trpc.social.uploadAttachment.useMutation();
   const discardAttachmentUpload = trpc.social.discardAttachmentUpload.useMutation();
   const updateProfile = trpc.social.updateProfile.useMutation({
     onSuccess: async () => { await utils.social.myProfile.invalidate(); toast.success("تَمَّ تَحْدِيثُ صُورَةِ الحِساب."); },
@@ -119,21 +118,9 @@ export default function CreatorStudio() {
     setIsAttachmentUploading(true);
     try {
       for (const file of accepted) {
-        const mimeType = file.type || "application/octet-stream";
-        try {
-          const prepared = await prepareAttachmentUpload.mutateAsync({ filename: file.name, mimeType, sizeBytes: file.size });
-          const uploadUrl = new URL(prepared.uploadUrl);
-          if (!/^https?:$/.test(uploadUrl.protocol)) throw new Error("تعذّر تجهيز رابط الرفع الآمن.");
-          const response = await fetch(uploadUrl, { method: "PUT", headers: { "Content-Type": prepared.mimeType }, body: file });
-          if (!response.ok) throw new Error("لم يُستَكمَل الرفع المباشر.");
-          setAttachments(current => [...current, { kind: prepared.kind, url: prepared.url, storageKey: prepared.key, filename: prepared.filename, mimeType: prepared.mimeType, sizeBytes: prepared.sizeBytes, scanStatus: prepared.scanStatus }]);
-          if (prepared.scanStatus === "pending") toast.message("رُفِعَ الملف إلى الحَجْرِ الأَمْنِيِّ؛ لن يُفتَح قبل اكتمال الفحص.");
-        } catch {
-          if (file.size > SMALL_UPLOAD_FALLBACK_BYTES) throw new Error(`لم يكتمل رفع «${file.name}» بعد. جرّب ملفًا أصغر مؤقّتًا، ثم أَعِد المحاولة لاحقًا.`);
-          const fallback = await uploadAttachment.mutateAsync({ filename: file.name, mimeType, dataBase64: await readFile(file) });
-          setAttachments(current => [...current, { kind: fallback.kind, url: fallback.url, storageKey: fallback.key, filename: fallback.filename, mimeType: fallback.mimeType, sizeBytes: fallback.sizeBytes, scanStatus: fallback.scanStatus }]);
-          toast.message(`أُضيف «${file.name}» عبر المسار الآمن البديل.`);
-        }
+        const attachment = await uploadAttachmentSafely(file, input => prepareAttachmentUpload.mutateAsync(input));
+        setAttachments(current => [...current, attachment]);
+        if (attachment.scanStatus === "pending") toast.message("رُفِعَ الملف إلى الحَجْرِ الأَمْنِيِّ؛ لن يُفتَح قبل اكتمال الفحص.");
       }
       toast.success(`أُضيف ${accepted.length} مرفق/مرفّقات.`);
     } catch (error) {

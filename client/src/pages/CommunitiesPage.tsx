@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { ownerReviewMailto } from "@/lib/ownerReview";
+import { uploadAttachmentSafely } from "@/lib/attachmentUpload";
 import { trpc } from "@/lib/trpc";
 import { ArrowUpRight, Eye, FileText, Flag, Globe2, ImagePlus, Layers3, Link2, Loader2, LockKeyhole, MessageSquareText, MoreHorizontal, Pencil, Plus, Trash2, Upload, UsersRound, Video } from "lucide-react";
 import { useRef, useState } from "react";
@@ -19,18 +20,7 @@ type CommunityKind = "community" | "group";
 type Visibility = "public" | "members";
 type Attachment = { id?: number; kind: "image" | "gif" | "video" | "file" | "link"; url: string; storageKey?: string | null; filename?: string | null; mimeType?: string | null; sizeBytes?: number | null; scanStatus?: "pending" | "clean" | "blocked" };
 
-const SMALL_UPLOAD_FALLBACK_BYTES = 50_000_000;
-
 function isAudioOrVideo(mimeType?: string | null) { return Boolean(mimeType?.toLowerCase().startsWith("video/") || mimeType?.toLowerCase().startsWith("audio/")); }
-
-function readFileAsBase64(file: File) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(new Error("تعذّرت قراءة الملف."));
-    reader.onload = () => resolve(String(reader.result).split(",")[1] || "");
-    reader.readAsDataURL(file);
-  });
-}
 type CommunityPost = { id: number; title?: string | null; content: string; hashtags?: string | null; visibility: "public" | "friends"; createdAt: Date; author: { id: number; name: string | null; username: string | null }; attachments: Attachment[]; likeCount: number; commentCount: number; repostCount: number };
 type ReportCategory = "scam" | "lie" | "brainrot" | "haram imagery";
 
@@ -120,7 +110,6 @@ export function CommunityDetailPage() {
   const leave = trpc.social.leaveCommunity.useMutation({ onSuccess: () => { toast.success("غادرت المساحة."); void utils.social.community.invalidate({ slug: slug ?? "" }); void utils.social.communities.invalidate(); }, onError: error => toast.error(error.message) });
   const createPost = trpc.social.createPost.useMutation({ onSuccess: result => { setContent(""); setAttachments([]); void feed.refetch(); if (result.moderation.status === "under_review") toast.message(result.moderation.message, { duration: 10_000, action: { label: "مراسلة المالك", onClick: () => { window.location.href = ownerReviewMailto(result.postId); } } }); else toast.success("تم نشر مشاركتك في المساحة."); }, onError: error => toast.error(error.message) });
   const prepareAttachmentUpload = trpc.social.prepareAttachmentUpload.useMutation();
-  const uploadAttachment = trpc.social.uploadAttachment.useMutation();
   const discardAttachmentUpload = trpc.social.discardAttachmentUpload.useMutation();
   const [isAttachmentUploading, setIsAttachmentUploading] = useState(false);
   const deletePost = trpc.social.deletePost.useMutation({ onSuccess: () => { void feed.refetch(); toast.success("تم حذف منشورك."); }, onError: error => toast.error(error.message) });
@@ -150,22 +139,9 @@ export function CommunityDetailPage() {
     setIsAttachmentUploading(true);
     try {
       for (const file of acceptedFiles) {
-        const mimeType = file.type || "application/octet-stream";
-        try {
-          const prepared = await prepareAttachmentUpload.mutateAsync({ filename: file.name, mimeType, sizeBytes: file.size });
-          const directUploadUrl = new URL(prepared.uploadUrl);
-          if (directUploadUrl.protocol !== "https:" && directUploadUrl.protocol !== "http:") throw new Error("تعذّر تجهيز رابط الرفع الآمن.");
-          const response = await fetch(directUploadUrl, { method: "PUT", headers: { "Content-Type": prepared.mimeType }, body: file });
-          if (!response.ok) throw new Error("تعذّر رفع الملف إلى التخزين الآمن.");
-          const { uploadUrl: _uploadUrl, sharedLimitBytes: _sharedLimitBytes, key, ...attachment } = prepared;
-          setAttachments(current => [...current, { ...attachment, storageKey: key }]);
-          if (prepared.scanStatus === "pending") toast.message("رُفع الملف إلى الحجر الأمني؛ لن يُفتح أو يُنزّل قبل اكتمال الفحص الخارجي.");
-        } catch {
-          if (file.size > SMALL_UPLOAD_FALLBACK_BYTES) throw new Error(`لم يكتمل رفع «${file.name}» بعد. احفظ المنشور أو جرّب ملفًا أصغر مؤقتًا؛ الرفع الكبير سيعود تلقائيًا عند اكتمال إعداد التخزين.`);
-          const fallback = await uploadAttachment.mutateAsync({ filename: file.name, mimeType, dataBase64: await readFileAsBase64(file) });
-          setAttachments(current => [...current, { ...fallback, storageKey: fallback.key }]);
-          toast.message(`أُضيف «${file.name}» عبر المسار الآمن البديل.`);
-        }
+        const attachment = await uploadAttachmentSafely(file, input => prepareAttachmentUpload.mutateAsync(input));
+        setAttachments(current => [...current, attachment]);
+        if (attachment.scanStatus === "pending") toast.message("رُفع الملف إلى الحجر الأمني؛ لن يُفتح أو يُنزّل قبل اكتمال الفحص الخارجي.");
       }
       toast.success(`تمت إضافة ${acceptedFiles.length} مرفق/مرفقات. يمكنك حذف أي واحد قبل النشر.`);
     } catch (error) {

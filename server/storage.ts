@@ -1,12 +1,14 @@
 import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import type { Express } from "express";
+import express, { type Express } from "express";
 import { Readable } from "node:stream";
 import { getR2MediaBinding } from "./_core/runtime";
 import { getPostAttachmentScanStatus } from "./db";
-import { isAttachmentDownloadAllowed } from "./attachmentSecurity";
+import { attachmentScanStatus, isAttachmentDownloadAllowed, requiresAttachmentQuarantine } from "./attachmentSecurity";
+import { getLocalSessionUser } from "./localAuth";
 
 const SIGNED_URL_TTL_SECONDS = 60 * 10;
+export const APP_RELAY_MAX_BYTES = 25_000_000;
 
 export type ObjectStorageConfig = {
   endpoint: string;
@@ -74,6 +76,38 @@ function appendHashSuffix(relKey: string): string {
   const lastDot = relKey.lastIndexOf(".");
   if (lastDot === -1) return `${relKey}_${hash}`;
   return `${relKey.slice(0, lastDot)}_${hash}${relKey.slice(lastDot)}`;
+}
+
+export function safeAttachmentFilename(filename: string): string {
+  return filename.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 120) || "upload";
+}
+
+export function relayAttachmentKind(mimeType: string): "image" | "gif" | "video" | "file" {
+  if (mimeType === "image/gif") return "gif";
+  if (mimeType.startsWith("image/")) return "image";
+  if (mimeType.startsWith("video/")) return "video";
+  return "file";
+}
+
+function readRelayFilename(value: unknown): string | null {
+  if (typeof value !== "string" || !value.trim()) return null;
+  try {
+    return decodeURIComponent(value).trim().slice(0, 255) || null;
+  } catch {
+    return null;
+  }
+}
+
+export function buildRelayAttachmentMetadata(filename: string, mimeType: string, sizeBytes: number) {
+  const scanStatus = attachmentScanStatus(filename, mimeType);
+  return {
+    filename,
+    mimeType,
+    sizeBytes,
+    kind: relayAttachmentKind(mimeType),
+    scanStatus,
+    storagePrefix: requiresAttachmentQuarantine(filename, mimeType) ? "quarantine" : "posts",
+  };
 }
 
 function uploadRouteForKey(key: string): string {
@@ -175,6 +209,29 @@ export async function storageCreatePresignedUpload(
 }
 
 export function registerObjectStorageRoutes(app: Express) {
+  app.put("/api/uploads/relay", express.raw({ type: "application/octet-stream", limit: `${APP_RELAY_MAX_BYTES}b` }), async (req, res) => {
+    const user = await getLocalSessionUser(req);
+    if (!user) {
+      res.status(401).json({ message: "سَجِّلِ الدُّخولَ قبل رفع المرفقات." });
+      return;
+    }
+    const filename = readRelayFilename(req.header("X-Attachment-Name"));
+    const mimeType = (req.header("X-Attachment-Type") || "application/octet-stream").trim().slice(0, 128) || "application/octet-stream";
+    if (!filename || !Buffer.isBuffer(req.body) || !req.body.length) {
+      res.status(400).json({ message: "لم نتمكّن من قراءة الملف. اختره مجدّدًا ثم أعد المحاولة." });
+      return;
+    }
+    try {
+      const metadata = buildRelayAttachmentMetadata(filename, mimeType, req.body.length);
+      const stored = await storagePut(`${user.id}/${metadata.storagePrefix}/${safeAttachmentFilename(filename)}`, req.body, mimeType);
+      res.status(201).json({ ...stored, kind: metadata.kind, filename: metadata.filename, mimeType: metadata.mimeType, sizeBytes: metadata.sizeBytes, scanStatus: metadata.scanStatus });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      console.error("[AttachmentRelay] upload failed", { message });
+      res.status(503).json({ message: "تعذّر حفظ الملف الآن. لم يُنشَر أيّ محتوى؛ أعد المحاولة بعد لحظة." });
+    }
+  });
+
   app.get("/uploads/*", async (req, res) => {
     const key = (req.params as Record<string, string>)[0];
     if (!key) {

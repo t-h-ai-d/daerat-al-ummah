@@ -10,6 +10,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ownerReviewMailto } from "@/lib/ownerReview";
+import { uploadAttachmentSafely } from "@/lib/attachmentUpload";
 import { trpc } from "@/lib/trpc";
 import { ArrowUpRight, Bookmark, Eye, FileText, Flag, Heart, ImageIcon, Link2, Loader2, MoreHorizontal, Palette, Pencil, Repeat2, Send, ShieldAlert, Sparkles, Tag, Trash2, Upload, UsersRound, Video } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -50,7 +51,6 @@ type MediaFilter = "all" | Attachment["kind"];
 type VisibilityFilter = "all" | "public";
 
 const MAX_ATTACHMENT_BYTES = 1_073_741_824;
-const SMALL_UPLOAD_FALLBACK_BYTES = 50_000_000;
 const containsArabic = (value: string) => /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/.test(value);
 const isAudioOrVideo = (mimeType?: string | null) => Boolean(mimeType?.toLowerCase().startsWith("audio/") || mimeType?.toLowerCase().startsWith("video/"));
 const composerKinds: Array<{ id: ComposerKind; label: string; detail: string; icon: typeof FileText; accept: string }> = [
@@ -60,15 +60,6 @@ const composerKinds: Array<{ id: ComposerKind; label: string; detail: string; ic
   { id: "files", label: "مَلَفّات", detail: "وثائق وملفات", icon: Upload, accept: "*/*" },
   { id: "mixed", label: "مُتَنَوِّع", detail: "نصّ ووسائط", icon: Sparkles, accept: "*/*" },
 ];
-
-function readFileAsBase64(file: File) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(new Error("تعذّرت قراءة الملف قبل رفعه."));
-    reader.onload = () => resolve(String(reader.result).split(",")[1] || "");
-    reader.readAsDataURL(file);
-  });
-}
 
 function Avatar({ initials, tone = "emerald" }: { initials: string; tone?: "emerald" | "gold" }) {
   const palette = tone === "gold" ? "bg-[#f2e5b9] text-[#805f14]" : "bg-[#dcece1] text-[#176047]";
@@ -144,7 +135,6 @@ export default function Home() {
     onError: error => toast.error(error.message),
   });
   const prepareAttachmentUpload = trpc.social.prepareAttachmentUpload.useMutation();
-  const uploadAttachment = trpc.social.uploadAttachment.useMutation();
   const discardAttachmentUpload = trpc.social.discardAttachmentUpload.useMutation();
   const like = trpc.social.toggleLike.useMutation({ onSuccess: () => utils.social.feed.invalidate(), onError: error => toast.error(error.message) });
   const repost = trpc.social.toggleRepost.useMutation({ onSuccess: () => utils.social.feed.invalidate(), onError: error => toast.error(error.message) });
@@ -183,22 +173,9 @@ export default function Home() {
     setIsAttachmentUploading(true);
     try {
       for (const file of accepted) {
-        const mimeType = file.type || "application/octet-stream";
-        try {
-          const prepared = await prepareAttachmentUpload.mutateAsync({ filename: file.name, mimeType, sizeBytes: file.size });
-          const uploadUrl = new URL(prepared.uploadUrl);
-          if (!["https:", "http:"].includes(uploadUrl.protocol)) throw new Error("تعذّر تجهيز رابط الرفع الآمن.");
-          const response = await fetch(uploadUrl, { method: "PUT", headers: { "Content-Type": prepared.mimeType }, body: file });
-          if (!response.ok) throw new Error("لم يُستَكمَل الرفع المباشر.");
-          const { uploadUrl: _ignored, sharedLimitBytes: _limit, key, ...attachment } = prepared;
-          setAttachments(current => [...current, { ...attachment, storageKey: key }]);
-          if (prepared.scanStatus === "pending") toast.message("رُفِعَ الملف إلى الحَجْر الأمني؛ لن يُفتَح قبل اكتمال الفحص.");
-        } catch {
-          if (file.size > SMALL_UPLOAD_FALLBACK_BYTES) throw new Error(`لم يكتمل رفع «${file.name}» بعد. جرّب ملفًا أصغر مؤقّتًا، ثم أَعِد المحاولة لاحقًا.`);
-          const fallback = await uploadAttachment.mutateAsync({ filename: file.name, mimeType, dataBase64: await readFileAsBase64(file) });
-          setAttachments(current => [...current, { ...fallback, storageKey: fallback.key }]);
-          toast.message(`أُضيف «${file.name}» عبر المسار الآمن البديل.`);
-        }
+        const attachment = await uploadAttachmentSafely(file, input => prepareAttachmentUpload.mutateAsync(input));
+        setAttachments(current => [...current, attachment]);
+        if (attachment.scanStatus === "pending") toast.message("رُفِعَ الملف إلى الحَجْر الأمني؛ لن يُفتَح قبل اكتمال الفحص.");
       }
       toast.success(`أُضيف ${accepted.length} مرفق/مرفّقات. يمكنك حذف أيٍّ منها قبل النشر.`);
     } catch (error) {

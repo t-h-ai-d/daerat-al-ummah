@@ -1,4 +1,5 @@
 import express from "express";
+import type { ErrorRequestHandler } from "express";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerObjectStorageRoutes } from "../storage";
 import { appRouter } from "../routers";
@@ -21,5 +22,17 @@ export function createApp() {
       createContext,
     }),
   );
+  const uploadErrorHandler: ErrorRequestHandler = (error, _req, res, next) => {
+    if (error?.type === "entity.too.large") {
+      res.status(413).json({ message: "الملف كبير لهذا المسار. لم يُنشَر أيّ محتوى؛ أعد المحاولة." });
+      return;
+    }
+    if (error?.type === "request.aborted") {
+      res.status(400).json({ message: "انقطع الرفع قبل اكتماله. لم يُنشَر أيّ محتوى؛ أعد المحاولة." });
+      return;
+    }
+    next(error);
+  };
+  app.use(uploadErrorHandler);
   return app;
 }
