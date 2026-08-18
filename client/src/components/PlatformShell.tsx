@@ -13,19 +13,21 @@ import {
   ShieldCheck,
   Sparkles,
   UserRound,
+  UsersRound,
   X,
 } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 import { useLocation } from "wouter";
 
 type NavItem = { label: string; href: string; icon: typeof Home };
-type MediaFilter = "all" | "image" | "video" | "file" | "link";
+type MediaFilter = "all" | "image" | "gif" | "video" | "file" | "link";
 type VisibilityFilter = "all" | "public";
 
 const primaryNav: NavItem[] = [
   { label: "الرئيسية", href: "/", icon: Home },
   { label: "استكشاف", href: "/explore", icon: Compass },
   { label: "الرسائل", href: "/chat", icon: MessageCircleMore },
+  { label: "المجتمعات", href: "/communities", icon: UsersRound },
   { label: "الإشعارات", href: "/notifications", icon: Bell },
   { label: "قواعد الدائرة", href: "/rules", icon: BookOpen },
   { label: "الخصوصية", href: "/privacy", icon: ShieldCheck },
@@ -34,6 +36,7 @@ const primaryNav: NavItem[] = [
 const mediaFilters: Array<{ value: MediaFilter; label: string }> = [
   { value: "all", label: "الكل" },
   { value: "image", label: "صور" },
+  { value: "gif", label: "GIF" },
   { value: "video", label: "فيديو" },
   { value: "file", label: "ملفات" },
   { value: "link", label: "روابط" },
@@ -66,8 +69,6 @@ const arabicLabels: Record<string, string> = {
   "Notifications": "الإشعارات",
   "Profile & identity": "الملف الشخصي والهوية",
   "Your place in the circle": "مكانك في الدائرة",
-  "Moderator workspace": "مساحة المشرف",
-  "Guard the circle": "حماية الدائرة",
   "Bio": "نبذة",
   "Username": "اسم المستخدم",
   "Country": "البلد",
@@ -277,7 +278,7 @@ export default function PlatformShell({ children }: { children: ReactNode }) {
       </header>
 
       <div className="mx-auto flex max-w-[1440px]">
-        <aside className="sticky top-[73px] hidden h-[calc(100vh-73px)] w-[248px] shrink-0 border-r border-[#dfe5da] px-5 py-7 lg:block">
+        <aside className="sticky top-[73px] hidden max-h-[calc(100vh-73px)] w-[248px] shrink-0 overflow-y-auto border-r border-[#dfe5da] px-5 py-7 lg:block">
           <nav className="space-y-1">
             {primaryNav.map(item => {
               const Icon = item.icon;
@@ -301,9 +302,6 @@ export default function PlatformShell({ children }: { children: ReactNode }) {
             <p className="mt-1.5 text-xs leading-5 text-[#688176]">لا احتيال. لا كذب. لا محتوى مُشتّت. والأدب السُّنّي يحفظ كرامة الناس والدين.</p>
             <button onClick={() => navigate("/rules")} className="mt-3 text-xs font-extrabold text-[#0f5a43] underline decoration-[#c6a04a] underline-offset-4">اقرأ القواعد</button>
           </div>
-          <button onClick={() => navigate("/admin")} className="mt-5 flex items-center gap-2 px-3 text-xs font-semibold text-[#84988e] transition-colors hover:text-[#255444]">
-            <ShieldCheck size={15} /> مساحة المشرف
-          </button>
         </aside>
 
         <main className="min-w-0 flex-1 pb-20 lg:pb-0">{children}</main>

@@ -12,6 +12,9 @@ import { drizzle } from "drizzle-orm/mysql2";
 import { createConnection } from "mysql2/promise";
 import {
   comments,
+  aiModerationChecks,
+  communities,
+  communityMembers,
   conversationParticipants,
   conversations,
   directMessages,
@@ -27,6 +30,7 @@ import {
   type InsertUser,
   users,
 } from "../drizzle/schema";
+import { AI_MODERATION_MODEL, reviewPostWithAi } from "./aiModeration";
 import { ENV } from "./_core/env";
 import { getHyperdriveBinding } from "./_core/runtime";
 
@@ -258,10 +262,10 @@ export async function listDirectMessages(userId: number, conversationId: number)
     .limit(100);
 }
 
-export async function sendDirectMessage(userId: number, conversationId: number, content: string) {
+export async function sendDirectMessage(userId: number, conversationId: number, content: string, attachment?: { url: string; kind: "gif" }) {
   const db = await requireDb();
   await requireConversationParticipant(userId, conversationId);
-  const created = await db.insert(directMessages).values({ conversationId, senderId: userId, content });
+  const created = await db.insert(directMessages).values({ conversationId, senderId: userId, content, attachmentUrl: attachment?.url ?? null, attachmentKind: attachment?.kind ?? null });
   await notifyMentions(userId, content, {});
   return Number(created[0].insertId);
 }
@@ -273,8 +277,119 @@ export async function updateProfile(userId: number, data: { username?: string; a
   return result[0];
 }
 
+async function getMemberCommunityIds(userId?: number) {
+  if (!userId) return new Set<number>();
+  const db = await requireDb();
+  const memberships = await db.select({ communityId: communityMembers.communityId }).from(communityMembers).where(eq(communityMembers.userId, userId));
+  return new Set(memberships.map(item => item.communityId));
+}
+
+async function getCommunityMembership(userId: number, communityId: number) {
+  const db = await requireDb();
+  const [membership] = await db.select().from(communityMembers).where(and(eq(communityMembers.userId, userId), eq(communityMembers.communityId, communityId))).limit(1);
+  return membership;
+}
+
+async function getCommunityOrThrow(communityId: number) {
+  const db = await requireDb();
+  const [community] = await db.select().from(communities).where(eq(communities.id, communityId)).limit(1);
+  if (!community) throw new Error("هذه المساحة غير موجودة.");
+  return community;
+}
+
+export async function assertCommunityAccess(viewerId: number | undefined, communityId: number) {
+  const community = await getCommunityOrThrow(communityId);
+  const membership = viewerId ? await getCommunityMembership(viewerId, communityId) : undefined;
+  if (community.visibility === "members" && !membership) throw new Error("هذه المساحة متاحة لأعضائها فقط.");
+  return { community, membership };
+}
+
+async function assertCommunityMembership(userId: number, communityId: number) {
+  const membership = await getCommunityMembership(userId, communityId);
+  if (!membership) throw new Error("انضم إلى هذه المساحة قبل النشر فيها.");
+  return membership;
+}
+
+export async function createCommunity(userId: number, data: { name: string; slug: string; description: string; kind: "community" | "group"; parentId?: number; visibility: "public" | "members" }) {
+  const db = await requireDb();
+  let parent: typeof communities.$inferSelect | undefined;
+  if (data.parentId) {
+    parent = await getCommunityOrThrow(data.parentId);
+    if (parent.parentId) throw new Error("يمكن إنشاء مستوى واحد فقط من المساحات الفرعية.");
+    if (parent.visibility === "members") await assertCommunityMembership(userId, parent.id);
+  }
+  const [duplicate] = await db.select({ id: communities.id }).from(communities).where(eq(communities.slug, data.slug)).limit(1);
+  if (duplicate) throw new Error("هذا الرابط المختصر مستخدم بالفعل.");
+  const [created] = await db.insert(communities).values({
+    name: data.name,
+    slug: data.slug,
+    description: data.description,
+    kind: parent ? "subcommunity" : data.kind,
+    parentId: parent?.id ?? null,
+    visibility: parent?.visibility === "members" ? "members" : data.visibility,
+    creatorId: userId,
+  });
+  const communityId = Number(created.insertId);
+  await db.insert(communityMembers).values({ communityId, userId, role: "owner" });
+  return { communityId };
+}
+
+export async function listCommunities(viewerId?: number) {
+  const db = await requireDb();
+  const [rows, counts, membershipIds] = await Promise.all([
+    db.select().from(communities).orderBy(desc(communities.createdAt)).limit(100),
+    db.select({ communityId: communityMembers.communityId, total: sql<number>`count(*)` }).from(communityMembers).groupBy(communityMembers.communityId),
+    getMemberCommunityIds(viewerId),
+  ]);
+  const countMap = new Map(counts.map(item => [item.communityId, Number(item.total)]));
+  return rows
+    .filter(community => community.visibility === "public" || membershipIds.has(community.id))
+    .map(community => ({ ...community, memberCount: countMap.get(community.id) ?? 0, joined: membershipIds.has(community.id) }));
+}
+
+export async function getCommunityDetails(viewerId: number | undefined, slug: string) {
+  const db = await requireDb();
+  const [community] = await db.select().from(communities).where(eq(communities.slug, slug)).limit(1);
+  if (!community) throw new Error("هذه المساحة غير موجودة.");
+  const membership = viewerId ? await getCommunityMembership(viewerId, community.id) : undefined;
+  if (community.visibility === "members" && !membership) throw new Error("هذه المساحة متاحة لأعضائها فقط.");
+  const [memberRows, subcommunities, membershipIds] = await Promise.all([
+    db.select({ total: sql<number>`count(*)` }).from(communityMembers).where(eq(communityMembers.communityId, community.id)),
+    db.select().from(communities).where(eq(communities.parentId, community.id)).orderBy(desc(communities.createdAt)),
+    getMemberCommunityIds(viewerId),
+  ]);
+  return {
+    community,
+    memberCount: Number(memberRows[0]?.total ?? 0),
+    membership: membership ?? null,
+    subcommunities: subcommunities.filter(item => item.visibility === "public" || membershipIds.has(item.id)),
+  };
+}
+
+export async function joinCommunity(userId: number, communityId: number) {
+  const db = await requireDb();
+  const community = await getCommunityOrThrow(communityId);
+  if (community.parentId) {
+    const parent = await getCommunityOrThrow(community.parentId);
+    if (parent.visibility === "members") await assertCommunityMembership(userId, parent.id);
+  }
+  const existing = await getCommunityMembership(userId, communityId);
+  if (existing) return { joined: true as const, role: existing.role };
+  await db.insert(communityMembers).values({ communityId, userId, role: "member" });
+  return { joined: true as const, role: "member" as const };
+}
+
+export async function leaveCommunity(userId: number, communityId: number) {
+  const membership = await getCommunityMembership(userId, communityId);
+  if (!membership) return { joined: false as const };
+  if (membership.role === "owner") throw new Error("لا يمكن لمالك المساحة مغادرتها. انقل الملكية أولًا.");
+  const db = await requireDb();
+  await db.delete(communityMembers).where(eq(communityMembers.id, membership.id));
+  return { joined: false as const };
+}
+
 export type AttachmentInput = {
-  kind: "image" | "video" | "file" | "link";
+  kind: "image" | "gif" | "video" | "file" | "link";
   url: string;
   storageKey?: string | null;
   filename?: string | null;
@@ -282,27 +397,46 @@ export type AttachmentInput = {
   sizeBytes?: number | null;
 };
 
-export async function createPost(userId: number, data: { title?: string; content: string; textStyle: "default" | "serif" | "emphasis"; visibility: "public" | "friends"; attachments: AttachmentInput[] }) {
+export async function createPost(userId: number, data: { title?: string; content: string; textStyle: "default" | "serif" | "emphasis"; visibility: "public" | "friends"; attachments: AttachmentInput[]; communityId?: number }) {
   const db = await requireDb();
   const [account] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
   if (!account || account.accountStatus === "banned") throw new Error("This account cannot publish posts.");
   const hashtags = (data.content.match(/(^|\s)#[A-Za-z0-9_-]+/g) ?? [])
     .map(tag => tag.trim())
     .join(" ") || null;
+  if (data.communityId) await assertCommunityMembership(userId, data.communityId);
+  const verdict = await reviewPostWithAi({ title: data.title, content: data.content, attachmentKinds: data.attachments.map(attachment => attachment.kind) });
+  const moderationStatus = verdict.action === "review" ? "under_review" : "published" as const;
   const [created] = await db.insert(posts).values({
     authorId: userId,
+    communityId: data.communityId ?? null,
     title: data.title?.trim() || null,
     content: data.content,
     textStyle: data.textStyle,
     hashtags,
     visibility: data.visibility,
+    moderationStatus,
   });
   const postId = Number(created.insertId);
+  await db.insert(aiModerationChecks).values({
+    postId,
+    source: verdict.source,
+    model: verdict.source === "ai" ? AI_MODERATION_MODEL : null,
+    action: moderationStatus,
+    category: verdict.category,
+    confidence: Math.round(verdict.confidence * 100),
+    rationale: verdict.rationale,
+    creatorMessage: verdict.userMessage,
+  });
   if (data.attachments.length) {
     await db.insert(postAttachments).values(data.attachments.map(item => ({ postId, uploaderId: userId, ...item })));
   }
-  await notifyMentions(userId, data.content, { postId });
-  return postId;
+  if (moderationStatus === "published") {
+    await notifyMentions(userId, data.content, { postId });
+  } else {
+    await notify({ recipientId: userId, postId, type: "moderation", message: verdict.userMessage });
+  }
+  return { postId, moderation: { status: moderationStatus, category: verdict.category, message: verdict.userMessage, source: verdict.source } };
 }
 
 export async function listMyPosts(authorId: number) {
@@ -340,7 +474,20 @@ async function assertCanAccessPost(viewerId: number, post: typeof posts.$inferSe
   if (!friendIds.has(post.authorId)) throw new Error("This post is limited to friends.");
 }
 
-export async function listFeed(viewerId?: number, mode: "following" | "chronological" | "trending" = "following", mediaType?: "image" | "video" | "file" | "link", visibilityScope: "all" | "public" = "all") {
+export function interleaveFeedAuthors<T extends { post: { authorId: number } }>(rows: T[]) {
+  const remaining = [...rows];
+  const ordered: T[] = [];
+  let previousAuthorId: number | undefined;
+  while (remaining.length) {
+    const nextIndex = remaining.findIndex(row => row.post.authorId !== previousAuthorId);
+    const [next] = remaining.splice(nextIndex >= 0 ? nextIndex : 0, 1);
+    ordered.push(next);
+    previousAuthorId = next.post.authorId;
+  }
+  return ordered;
+}
+
+export async function listFeed(viewerId?: number, mode: "following" | "chronological" | "balanced" = "following", mediaType?: "image" | "gif" | "video" | "file" | "link", visibilityScope: "all" | "public" = "all") {
   const db = await requireDb();
   let rows;
   if (mode === "following" && viewerId) {
@@ -350,6 +497,7 @@ export async function listFeed(viewerId?: number, mode: "following" | "chronolog
   } else {
     rows = await db.select({ post: posts, author: users }).from(posts).innerJoin(users, eq(posts.authorId, users.id)).where(eq(posts.moderationStatus, "published")).orderBy(desc(posts.createdAt)).limit(80);
   }
+  if (mode === "balanced") rows = interleaveFeedAuthors(rows);
   const friendIds = viewerId ? await getFriendIds(viewerId) : new Set<number>();
   rows = rows.filter(row => row.post.visibility === "public" || (viewerId !== undefined && (row.post.authorId === viewerId || friendIds.has(row.post.authorId)))).slice(0, 40);
   const postIds = rows.map(row => row.post.id);
@@ -382,6 +530,48 @@ export async function listFeed(viewerId?: number, mode: "following" | "chronolog
   }));
   const mediaFiltered = mediaType ? formatted.filter(post => post.attachments.some(attachment => attachment.kind === mediaType)) : formatted;
   return visibilityScope === "public" ? mediaFiltered.filter(post => post.visibility === "public") : mediaFiltered;
+}
+
+export async function listCommunityFeed(viewerId: number | undefined, communityId: number) {
+  const db = await requireDb();
+  await assertCommunityAccess(viewerId, communityId);
+  const rows = await db
+    .select({ post: posts, author: users })
+    .from(posts)
+    .innerJoin(users, eq(posts.authorId, users.id))
+    .where(and(eq(posts.communityId, communityId), eq(posts.moderationStatus, "published")))
+    .orderBy(desc(posts.createdAt))
+    .limit(40);
+  const friendIds = viewerId ? await getFriendIds(viewerId) : new Set<number>();
+  const visibleRows = rows.filter(row => row.post.visibility === "public" || (viewerId !== undefined && (row.post.authorId === viewerId || friendIds.has(row.post.authorId))));
+  const postIds = visibleRows.map(row => row.post.id);
+  if (!postIds.length) return [];
+  const [attachmentRows, likeRows, commentRows, repostRows, viewerLikeRows, viewerRepostRows] = await Promise.all([
+    db.select().from(postAttachments).where(inArray(postAttachments.postId, postIds)),
+    db.select({ postId: likes.postId, total: sql<number>`count(*)` }).from(likes).where(inArray(likes.postId, postIds)).groupBy(likes.postId),
+    db.select({ postId: comments.postId, total: sql<number>`count(*)` }).from(comments).where(inArray(comments.postId, postIds)).groupBy(comments.postId),
+    db.select({ postId: reposts.postId, total: sql<number>`count(*)` }).from(reposts).where(inArray(reposts.postId, postIds)).groupBy(reposts.postId),
+    viewerId ? db.select({ postId: likes.postId }).from(likes).where(and(eq(likes.userId, viewerId), inArray(likes.postId, postIds))) : Promise.resolve([]),
+    viewerId ? db.select({ postId: reposts.postId }).from(reposts).where(and(eq(reposts.userId, viewerId), inArray(reposts.postId, postIds))) : Promise.resolve([]),
+  ]);
+  const asNumberMap = (items: Array<{ postId: number; total: number }>) => new Map(items.map(item => [item.postId, Number(item.total)]));
+  const attachmentMap = new Map<number, typeof attachmentRows>();
+  attachmentRows.forEach(item => attachmentMap.set(item.postId ?? 0, [...(attachmentMap.get(item.postId ?? 0) ?? []), item]));
+  const likeMap = asNumberMap(likeRows);
+  const commentMap = asNumberMap(commentRows);
+  const repostMap = asNumberMap(repostRows);
+  const viewerLikes = new Set(viewerLikeRows.map(item => item.postId));
+  const viewerReposts = new Set(viewerRepostRows.map(item => item.postId));
+  return visibleRows.map(row => ({
+    ...row.post,
+    author: { id: row.author.id, name: row.author.name, username: row.author.username, avatarUrl: row.author.avatarUrl, country: row.author.country, madhhabPreference: row.author.madhhabPreference },
+    attachments: attachmentMap.get(row.post.id) ?? [],
+    likeCount: likeMap.get(row.post.id) ?? 0,
+    commentCount: commentMap.get(row.post.id) ?? 0,
+    repostCount: repostMap.get(row.post.id) ?? 0,
+    likedByViewer: viewerLikes.has(row.post.id),
+    repostedByViewer: viewerReposts.has(row.post.id),
+  }));
 }
 
 async function notify(data: { recipientId: number; actorId?: number; postId?: number; commentId?: number; type: "follow" | "like" | "comment" | "repost" | "mention" | "moderation"; message: string }) {

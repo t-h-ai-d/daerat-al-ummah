@@ -104,5 +104,22 @@
 - [x] Initialize the 14-table fresh MySQL schema automatically before the first Render server start.
 - [x] Push the combined Aiven TLS and automatic schema-startup fix to GitHub for Render to deploy.
 - [ ] Run the automatic schema-startup path against the fresh external MySQL database and verify all 14 tables exist before serving registrations.
+- [ ] Replace Aiven-specific deployment configuration with the user-selected TiDB Cloud MySQL connection and TLS settings.
+- [ ] Initialize and verify all 14 platform tables in the new TiDB Cloud database through the Render deployment.
+- [x] Fix the home-page layout so all public content is reachable at normal mobile and desktop zoom.
+- [x] Remove visible administrator and moderation workspaces from member navigation and routes.
+- [x] Replace in-platform reporting with an owner-directed report link to `ssbmbwuugame@gmail.com`.
+- [x] Remove the remaining unused internal report mutation so reports are delivered only through the owner-email flow.
+- [x] Remove the dormant administrator component and moderation queries from the shipped member application bundle.
+- [x] Add member-created groups, communities, and nested subcommunities with membership and visibility rules.
+- [x] Add emoji insertion and GIF attachment support to member posts and conversations.
 - [x] Correct the Aiven TLS URI parser and verify it with type checks, production build, and 26 safeguards tests.
 - [x] Push the Aiven TLS fix to GitHub so Render can redeploy the corrected service.
+- [x] Add an Arabic-first AI-assisted Islamic moderation layer for public posts that detects likely spam and clear community-rule risks without automatically issuing religious rulings or permanent penalties.
+- [x] Add an immediate owner-email review link to every public-post composer when AI screening holds a post; do not create a member-facing moderator workspace.
+- [x] Document the owner’s human-review path through the held-post audit records and clarify that comments and direct messages are outside the initial automated-screening scope.
+- [x] Preserve Arabic diacritics and shadda throughout member-facing typography, including posts, messages, and platform labels.
+- [x] Replace the persistent feed-loading panel with a brief calm loading effect and the empty-state message «الدَّائِرَةُ فارِغَةٌ» when no posts are available.
+- [x] Add transparent, finite, non-addictive ordering choices for feed posts without engagement-maximizing recommendations or endless scrolling.
+- [x] Verify together that normal-zoom home reachability, email-only reports, hidden moderation workspaces, communities, emoji, GIF, and AI-screening safeguards do not regress one another.
+- [x] Add a concise Arabic Qur'an-and-Sunnah ethics summary to the member terms, with source references and a clear note that it is not a substitute for qualified religious guidance.

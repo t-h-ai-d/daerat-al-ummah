@@ -8,6 +8,13 @@ function mapChatError(error: unknown) {
   return new TRPCError({ code: "BAD_REQUEST", message });
 }
 
+export const directMessageInputSchema = z.object({
+  conversationId: z.number().int().positive(),
+  content: z.string().trim().max(3000).default(""),
+  attachmentUrl: z.string().url().max(2000).optional(),
+  attachmentKind: z.literal("gif").optional(),
+}).refine(input => Boolean(input.content || (input.attachmentUrl && input.attachmentKind)), { message: "اكتب رسالة أو أرفق ملف GIF." });
+
 export const chatRouter = router({
   conversations: protectedProcedure.query(({ ctx }) => db.listDirectConversations(ctx.user.id)),
   start: protectedProcedure
@@ -29,10 +36,10 @@ export const chatRouter = router({
       }
     }),
   send: protectedProcedure
-    .input(z.object({ conversationId: z.number().int().positive(), content: z.string().trim().min(1).max(3000) }))
+    .input(directMessageInputSchema)
     .mutation(async ({ ctx, input }) => {
       try {
-        return { id: await db.sendDirectMessage(ctx.user.id, input.conversationId, input.content) };
+        return { id: await db.sendDirectMessage(ctx.user.id, input.conversationId, input.content, input.attachmentUrl && input.attachmentKind ? { url: input.attachmentUrl, kind: input.attachmentKind } : undefined) };
       } catch (error) {
         throw mapChatError(error);
       }

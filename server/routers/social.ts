@@ -4,14 +4,16 @@ import * as db from "../db";
 import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
 import { storagePut } from "../storage";
 
-const attachmentSchema = z.object({
-  kind: z.enum(["image", "video", "file", "link"]),
+export const attachmentSchema = z.object({
+  kind: z.enum(["image", "gif", "video", "file", "link"]),
   url: z.string().min(1).max(2000),
   storageKey: z.string().max(512).nullable().optional(),
   filename: z.string().max(255).nullable().optional(),
   mimeType: z.string().max(128).nullable().optional(),
   sizeBytes: z.number().int().positive().max(50_000_000).nullable().optional(),
 });
+
+const communitySlugSchema = z.string().trim().toLowerCase().min(3).max(96).regex(/^[a-z0-9-]+$/, "استخدم أحرفًا إنجليزية صغيرة وأرقامًا وشرطات فقط.");
 
 const safeMimeTypes = new Set([
   "application/pdf",
@@ -29,10 +31,26 @@ function safeFilename(filename: string) {
 export const socialRouter = router({
   myProfile: protectedProcedure.query(({ ctx }) => db.getUserById(ctx.user.id)),
   feed: publicProcedure
-    .input(z.object({ mode: z.enum(["following", "chronological", "trending"]).default("following"), mediaType: z.enum(["image", "video", "file", "link"]).optional(), visibilityScope: z.enum(["all", "public"]).default("all") }))
+    .input(z.object({ mode: z.enum(["following", "chronological", "balanced"]).default("following"), mediaType: z.enum(["image", "gif", "video", "file", "link"]).optional(), visibilityScope: z.enum(["all", "public"]).default("all") }))
     .query(({ ctx, input }) => db.listFeed(ctx.user?.id, input.mode, input.mediaType, input.visibilityScope)),
+  communities: publicProcedure.query(({ ctx }) => db.listCommunities(ctx.user?.id)),
+  community: publicProcedure
+    .input(z.object({ slug: communitySlugSchema }))
+    .query(({ ctx, input }) => db.getCommunityDetails(ctx.user?.id, input.slug)),
+  communityFeed: publicProcedure
+    .input(z.object({ communityId: z.number().int().positive() }))
+    .query(({ ctx, input }) => db.listCommunityFeed(ctx.user?.id, input.communityId)),
+  createCommunity: protectedProcedure
+    .input(z.object({ name: z.string().trim().min(3).max(120), slug: communitySlugSchema, description: z.string().trim().min(12).max(1600), kind: z.enum(["community", "group"]), parentId: z.number().int().positive().optional(), visibility: z.enum(["public", "members"]).default("public") }))
+    .mutation(({ ctx, input }) => db.createCommunity(ctx.user.id, input)),
+  joinCommunity: protectedProcedure
+    .input(z.object({ communityId: z.number().int().positive() }))
+    .mutation(({ ctx, input }) => db.joinCommunity(ctx.user.id, input.communityId)),
+  leaveCommunity: protectedProcedure
+    .input(z.object({ communityId: z.number().int().positive() }))
+    .mutation(({ ctx, input }) => db.leaveCommunity(ctx.user.id, input.communityId)),
   createPost: protectedProcedure
-    .input(z.object({ title: z.string().trim().max(240).optional(), content: z.string().trim().min(1).max(5000), textStyle: z.enum(["default", "serif", "emphasis"]).default("default"), visibility: z.enum(["public", "friends"]).default("public"), attachments: z.array(attachmentSchema).max(5).default([]) }))
+    .input(z.object({ title: z.string().trim().max(240).optional(), content: z.string().trim().min(1).max(5000), textStyle: z.enum(["default", "serif", "emphasis"]).default("default"), visibility: z.enum(["public", "friends"]).default("public"), communityId: z.number().int().positive().optional(), attachments: z.array(attachmentSchema).max(5).default([]) }))
     .mutation(({ ctx, input }) => db.createPost(ctx.user.id, input)),
   myPosts: protectedProcedure.query(({ ctx }) => db.listMyPosts(ctx.user.id)),
   deletePost: protectedProcedure
@@ -57,9 +75,6 @@ export const socialRouter = router({
   addComment: protectedProcedure
     .input(z.object({ postId: z.number().int().positive(), content: z.string().trim().min(1).max(1800) }))
     .mutation(({ ctx, input }) => db.addComment(ctx.user.id, input.postId, input.content)),
-  report: protectedProcedure
-    .input(z.object({ postId: z.number().int().positive(), category: z.enum(["scam", "lie", "brainrot", "haram imagery"]), details: z.string().trim().max(1200).optional() }))
-    .mutation(({ ctx, input }) => db.createReport(ctx.user.id, input.postId, input.category, input.details)),
   search: publicProcedure
     .input(z.object({ query: z.string().trim().min(1).max(100) }))
     .query(({ ctx, input }) => db.searchCircle(input.query, ctx.user?.id)),
@@ -81,7 +96,7 @@ export const socialRouter = router({
       const bytes = Buffer.from(input.dataBase64, "base64");
       if (!bytes.length || bytes.length > 50_000_000) throw new TRPCError({ code: "PAYLOAD_TOO_LARGE", message: "Files must be 50 MB or smaller." });
       const result = await storagePut(`${ctx.user.id}/posts/${safeFilename(input.filename)}`, bytes, input.mimeType);
-      return { ...result, filename: input.filename, mimeType: input.mimeType, sizeBytes: bytes.length, kind: isImage ? "image" as const : isVideo ? "video" as const : "file" as const };
+      return { ...result, filename: input.filename, mimeType: input.mimeType, sizeBytes: bytes.length, kind: input.mimeType === "image/gif" ? "gif" as const : isImage ? "image" as const : isVideo ? "video" as const : "file" as const };
     }),
   uploadAvatar: protectedProcedure
     .input(z.object({ filename: z.string().min(1).max(255), mimeType: z.string().startsWith("image/").max(128), dataBase64: z.string().min(1).max(10_000_000) }))

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Serif+Display:ital@0;1&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Serif+Display:ital@0;1&family=Noto+Naskh+Arabic:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -54,12 +54,12 @@
 }
 
 * { border-color: var(--border); }
-html { background: #f5f5ef; }
-body { min-width: 320px; background: #f5f5ef; color: #16352d; font-family: "DM Sans", ui-sans-serif, system-ui, sans-serif; }
-button, input, textarea { font: inherit; }
+html { background: #f5f5ef; text-rendering: optimizeLegibility; }
+body { min-width: 320px; background: #f5f5ef; color: #16352d; font-family: "Noto Naskh Arabic", "DM Sans", ui-sans-serif, system-ui, sans-serif; font-feature-settings: "kern" 1, "liga" 1, "calt" 1; font-variant-ligatures: common-ligatures contextual; }
+button, input, textarea { font: inherit; font-feature-settings: inherit; }
 button { cursor: pointer; }
-.font-display { font-family: "DM Serif Display", Georgia, serif; }
-.arabic-content, textarea:lang(ar), input:lang(ar) { font-family: "Noto Naskh Arabic", "Amiri", serif; font-size: 1.12em; line-height: 1.9; letter-spacing: 0; text-align: start; }
+.font-display { font-family: "Noto Naskh Arabic", "DM Serif Display", Georgia, serif; }
+.arabic-content, textarea:lang(ar), input:lang(ar) { font-family: "Noto Naskh Arabic", "Amiri", serif; font-size: 1.12em; line-height: 1.9; letter-spacing: 0; text-align: start; unicode-bidi: plaintext; }
 [dir="rtl"] { text-align: start; }
 .geometric-orb { position: absolute; right: -64px; top: -75px; width: 220px; height: 220px; opacity: .48; background-image: linear-gradient(30deg, transparent 48%, #d6bb65 49%, #d6bb65 51%, transparent 52%), linear-gradient(-30deg, transparent 48%, #d6bb65 49%, #d6bb65 51%, transparent 52%); background-size: 42px 42px; transform: rotate(15deg); mask-image: radial-gradient(circle, black 23%, transparent 70%); }
 .action-button { display: inline-flex; align-items: center; gap: .375rem; border-radius: .55rem; padding: .35rem .45rem; color: #6c8478; font-size: .73rem; font-weight: 700; transition: background-color .16s cubic-bezier(.23,1,.32,1), color .16s cubic-bezier(.23,1,.32,1), transform .16s cubic-bezier(.23,1,.32,1); }
@@ -67,4 +67,13 @@ button { cursor: pointer; }
 .action-button:active, .composer-icon:active { transform: scale(.97); }
 .composer-icon { display: grid; height: 2rem; width: 2rem; place-items: center; border-radius: .65rem; color: #789187; transition: background-color .16s cubic-bezier(.23,1,.32,1), color .16s cubic-bezier(.23,1,.32,1), transform .16s cubic-bezier(.23,1,.32,1); }
 .composer-icon:hover { background: #edf3ed; color: #1e674b; }
+
+/* The home feed has one brief, calm loading moment. If data is unavailable,
+   it resolves to the explicit empty-circle state rather than an endless panel. */
+.feed-loader { display: flex; min-height: 118px; align-items: center; justify-content: center; gap: .65rem; overflow: hidden; border-color: #d9e5da; background: linear-gradient(100deg, #fbfcf8 0%, #f0f5ee 45%, #fbfcf8 100%); background-size: 220% 100%; font-weight: 700; animation: calm-feed-shimmer 1.2s ease-in-out infinite; }
+.feed-loader__dot { height: .6rem; width: .6rem; border-radius: 999px; background: #1f6a4d; box-shadow: 0 0 0 0 rgba(31, 106, 77, .18); animation: calm-feed-pulse 1.2s ease-in-out infinite; }
+.feed-empty h2, .feed-empty p { font-family: "Noto Naskh Arabic", "Amiri", serif; }
+@keyframes calm-feed-shimmer { from { background-position: 100% 0; } to { background-position: -120% 0; } }
+@keyframes calm-feed-pulse { 50% { transform: scale(1.36); box-shadow: 0 0 0 .45rem rgba(31, 106, 77, 0); } }
 @media (prefers-reduced-motion: no-preference) { .geometric-orb { animation: slow-drift 15s ease-in-out infinite alternate; } @keyframes slow-drift { from { transform: rotate(15deg) translate3d(0,0,0); } to { transform: rotate(24deg) translate3d(-12px,6px,0); } } }
+@media (prefers-reduced-motion: reduce) { .feed-loader, .feed-loader__dot { animation: none; } }

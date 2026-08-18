@@ -38,6 +38,42 @@ export const users = mysqlTable("users", {
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
 });
 
+export const communities = mysqlTable(
+  "communities",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    name: varchar("name", { length: 120 }).notNull(),
+    slug: varchar("slug", { length: 96 }).notNull().unique(),
+    description: text("description").notNull(),
+    kind: mysqlEnum("kind", ["community", "group", "subcommunity"]).default("community").notNull(),
+    parentId: int("parentId"),
+    visibility: mysqlEnum("visibility", ["public", "members"]).default("public").notNull(),
+    creatorId: int("creatorId").notNull().references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => [
+    index("communities_parent_created_idx").on(table.parentId, table.createdAt),
+    index("communities_creator_created_idx").on(table.creatorId, table.createdAt),
+    index("communities_visibility_created_idx").on(table.visibility, table.createdAt),
+  ],
+);
+
+export const communityMembers = mysqlTable(
+  "communityMembers",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    communityId: int("communityId").notNull().references(() => communities.id, { onDelete: "cascade" }),
+    userId: int("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
+    role: mysqlEnum("role", ["owner", "member"]).default("member").notNull(),
+    joinedAt: timestamp("joinedAt").defaultNow().notNull(),
+  },
+  table => [
+    uniqueIndex("community_member_unique").on(table.communityId, table.userId),
+    index("community_member_user_idx").on(table.userId, table.communityId),
+  ],
+);
+
 export const conversations = mysqlTable("conversations", {
   id: int("id").autoincrement().primaryKey(),
   kind: mysqlEnum("kind", ["direct"]).default("direct").notNull(),
@@ -74,6 +110,8 @@ export const directMessages = mysqlTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     content: text("content").notNull(),
+    attachmentUrl: text("attachmentUrl"),
+    attachmentKind: mysqlEnum("attachmentKind", ["gif"]),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
   },
   table => [index("messages_conversation_created_idx").on(table.conversationId, table.createdAt)],
@@ -86,6 +124,7 @@ export const posts = mysqlTable(
     authorId: int("authorId")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
+    communityId: int("communityId").references(() => communities.id, { onDelete: "set null" }),
     title: varchar("title", { length: 240 }),
     content: text("content").notNull(),
     textStyle: mysqlEnum("textStyle", ["default", "serif", "emphasis"]).default("default").notNull(),
@@ -101,6 +140,7 @@ export const posts = mysqlTable(
   },
   table => [
     index("posts_author_created_idx").on(table.authorId, table.createdAt),
+    index("posts_community_created_idx").on(table.communityId, table.createdAt),
     index("posts_status_created_idx").on(table.moderationStatus, table.createdAt),
   ],
 );
@@ -205,7 +245,7 @@ export const postAttachments = mysqlTable(
     uploaderId: int("uploaderId")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    kind: mysqlEnum("kind", ["image", "video", "file", "link"]).notNull(),
+    kind: mysqlEnum("kind", ["image", "gif", "video", "file", "link"]).notNull(),
     storageKey: varchar("storageKey", { length: 512 }),
     url: text("url").notNull(),
     filename: varchar("filename", { length: 255 }),
@@ -217,6 +257,27 @@ export const postAttachments = mysqlTable(
     index("attachments_post_idx").on(table.postId),
     index("attachments_uploader_idx").on(table.uploaderId, table.createdAt),
   ],
+);
+
+/**
+ * Immutable record of a conservative AI-assisted screening verdict. This is
+ * not a religious ruling and cannot itself ban an account or remove content.
+ */
+export const aiModerationChecks = mysqlTable(
+  "aiModerationChecks",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    postId: int("postId").notNull().references(() => posts.id, { onDelete: "cascade" }).unique(),
+    source: mysqlEnum("source", ["rules", "ai", "fallback"]).notNull(),
+    model: varchar("model", { length: 96 }),
+    action: mysqlEnum("action", ["published", "under_review"]).notNull(),
+    category: mysqlEnum("category", ["none", "spam", "scam", "deception", "attention_harm", "religious_disrespect", "haram_imagery_claim", "harassment"]).notNull(),
+    confidence: int("confidence").notNull(),
+    rationale: text("rationale").notNull(),
+    creatorMessage: varchar("creatorMessage", { length: 500 }).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  table => [index("ai_moderation_action_created_idx").on(table.action, table.createdAt)],
 );
 
 export const reports = mysqlTable(

@@ -17,6 +17,8 @@ services:
         value: "true"
       - key: AUTO_DB_PUSH
         value: "true"
+      - key: OPENAI_API_KEY
+        sync: false
       - key: S3_ENDPOINT
         sync: false
       - key: S3_REGION
