@@ -531,7 +531,7 @@ export async function updatePostByAuthor(authorId: number, postId: number, data:
   const values: { content?: string; visibility?: "public" | "friends"; hashtags?: string | null } = {};
   if (data.content !== undefined) {
     values.content = data.content;
-    values.hashtags = (data.content.match(/(^|\s)#[A-Za-z0-9_-]+/g) ?? []).map(tag => tag.trim()).join(" ") || null;
+    values.hashtags = (data.content.match(/(^|\s)#[A-Za-z0-9_\-\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]+/g) ?? []).map(tag => tag.trim()).join(" ") || null;
   }
   if (data.visibility !== undefined) values.visibility = data.visibility;
   if (!Object.keys(values).length) throw new Error("لم تُحدَّد تغييرات للمنشور.");

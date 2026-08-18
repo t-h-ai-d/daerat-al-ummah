@@ -31,7 +31,7 @@ function readFileAsBase64(file: File) {
     reader.readAsDataURL(file);
   });
 }
-type CommunityPost = { id: number; title?: string | null; content: string; visibility: "public" | "friends"; createdAt: Date; author: { id: number; name: string | null; username: string | null }; attachments: Attachment[]; likeCount: number; commentCount: number; repostCount: number };
+type CommunityPost = { id: number; title?: string | null; content: string; hashtags?: string | null; visibility: "public" | "friends"; createdAt: Date; author: { id: number; name: string | null; username: string | null }; attachments: Attachment[]; likeCount: number; commentCount: number; repostCount: number };
 type ReportCategory = "scam" | "lie" | "brainrot" | "haram imagery";
 
 function communitySlugFromText(value: string) {
@@ -71,6 +71,7 @@ function CommunityPostCard({ post, isAuthor, onReport, onDelete, onEdit, onSetVi
     </div>
     {post.title && <h3 className="mt-4 font-display text-lg font-semibold text-[#244c3e]">{post.title}</h3>}
     <p dir="auto" className="mt-3 whitespace-pre-wrap text-sm leading-7 text-[#3e5c50]">{post.content}</p>
+    {post.hashtags && <div className="mt-3 flex flex-wrap gap-2" dir="rtl">{post.hashtags.split(/\s+/).filter(Boolean).map(tag => <span key={tag} className="rounded-full bg-[#edf5ec] px-2.5 py-1 text-xs font-bold text-[#267052]">{tag}</span>)}</div>}
     {post.attachments.map((attachment, index) => <AttachmentPreview key={attachment.id ?? `${attachment.url}-${index}`} attachment={attachment} />)}
     <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-[#edf2eb] pt-3"><PostComments postId={post.id} commentCount={post.commentCount} /><div className="flex items-center gap-3"><p className="text-xs text-[#84978c]">{post.likeCount} إعجاب · {post.repostCount} مشاركة</p>{!isAuthor && <button onClick={onReport} className="flex items-center gap-1 text-xs font-bold text-[#a64b41] transition-colors hover:text-[#81392f]" aria-label="الإبلاغ عن المنشور"><Flag size={14} />إبلاغ</button>}</div></div>
   </article>;

@@ -200,6 +200,6 @@
 - [x] Replace all raw attachment and malformed-link errors with clear Arabic recovery messages; never expose «Invalid URL» to members.
 - [x] Redesign the main Arabic composer so members explicitly choose text-only, video-only, file-only, images-only, or any allowed post-plus-attachment combination.
 - [x] Preserve and present Arabic harakāt and shaddah in all new composer, notification, and studio labels.
-- [ ] Restore member-created tags/hashtags in posts with Arabic RTL display and discovery support.
+- [x] Restore member-created tags/hashtags in posts with Arabic RTL display and discovery support.
 - [x] Add member-authorized deletion controls for their own direct messages, their own conversations, and their own in-app notifications.
 - [x] Build a member-facing «استوديو المُنشِئ» page for drafts, post-format selection, and direct access to publishing tools.
