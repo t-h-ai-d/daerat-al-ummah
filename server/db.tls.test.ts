@@ -28,7 +28,13 @@ describe("external MySQL TLS setting", () => {
       user: "avnadmin",
       password: "pass@word",
       database: "defaultdb",
-      ssl: { rejectUnauthorized: true },
+      ssl: { rejectUnauthorized: false },
     });
+  });
+
+  it("keeps certificate verification for an explicit verify mode", () => {
+    expect(
+      parseTlsDatabaseUrl("mysql://user:password@example.com:3306/app?ssl-mode=VERIFY_CA").ssl,
+    ).toEqual({ rejectUnauthorized: true });
   });
 });

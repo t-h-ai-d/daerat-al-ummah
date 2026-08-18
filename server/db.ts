@@ -34,6 +34,7 @@ export function parseTlsDatabaseUrl(databaseUrl: string) {
   const parsed = new URL(databaseUrl);
   const database = decodeURIComponent(parsed.pathname.replace(/^\//, ""));
   if (!parsed.hostname || !database) throw new Error("DATABASE_URL must include a host and database name");
+  const sslMode = parsed.searchParams.get("ssl-mode")?.toUpperCase();
 
   return {
     host: parsed.hostname,
@@ -41,7 +42,10 @@ export function parseTlsDatabaseUrl(databaseUrl: string) {
     user: decodeURIComponent(parsed.username),
     password: decodeURIComponent(parsed.password),
     database,
-    ssl: { rejectUnauthorized: true },
+    // Aiven's `REQUIRED` mode encrypts the connection but does not provide a
+    // CA file to Node. Certificate verification is enabled only when the URI
+    // explicitly requests a verification mode and the deployment supplies one.
+    ssl: { rejectUnauthorized: sslMode === "VERIFY_CA" || sslMode === "VERIFY_IDENTITY" },
   };
 }
 

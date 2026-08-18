@@ -96,5 +96,13 @@
 - [x] Push the validated Render, Aiven, and Backblaze configuration to the private GitHub repository.
 - [ ] Diagnose and restore the current database connection that blocks new local-account registration.
 - [ ] Correct Render-to-Aiven TLS URI parsing and redeploy the database connection fix.
+- [ ] Verify that Render deployed the Aiven TLS connector fix before replacing the database provider.
+- [ ] Select a simpler free MySQL-compatible database fallback only if the corrected Aiven connection is still unavailable.
+- [x] Research and select the most durable currently free MySQL-compatible database option for the platform’s member, post, chat, and moderation data: retain Aiven MySQL Free Tier rather than create another provider account.
+- [ ] Update Render configuration and documentation for the selected free database, then verify a fresh local registration.
+- [x] Adjust Aiven TLS verification for its `ssl-mode=REQUIRED` connection URI and verify the corrected startup configuration with type checks, production build, and safeguards.
+- [x] Initialize the 14-table fresh MySQL schema automatically before the first Render server start.
+- [ ] Push the combined Aiven TLS and automatic schema-startup fix to GitHub for Render to deploy.
+- [ ] Run the automatic schema-startup path against the fresh external MySQL database and verify all 14 tables exist before serving registrations.
 - [x] Correct the Aiven TLS URI parser and verify it with type checks, production build, and 26 safeguards tests.
 - [x] Push the Aiven TLS fix to GitHub so Render can redeploy the corrected service.
