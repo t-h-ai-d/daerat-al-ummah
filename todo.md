@@ -158,7 +158,7 @@
 - [ ] Audit the full production feature set from top to bottom and identify only verifiable remaining defects.
 - [ ] Verify that in-app reports save in the database and dispatch through server-side Resend delivery without opening a member mail client.
 - [x] Fix the browser-push startup guard so TiDB Cloud always receives a TLS connection and the Render service can start.
-- [ ] Produce a complete feature-by-feature audit based on every requirement from the full conversation.
+- [x] Produce a complete feature-by-feature audit based on every requirement from the full conversation.
 - [x] Fix visible access to existing comment threads beneath home and community posts, including a clear Arabic empty-thread state.
 - [x] Split the production JavaScript bundle into practical vendor chunks so the large-chunk warning is reduced without changing member behavior.
 - [x] Audit the requested member features—local authentication, posts, friendships, messages, mentions, comments, uploads, communities, emoji/GIF, reports, Arabic RTL, finite feeds, and account controls—and repair any remaining member-facing gaps before release.
