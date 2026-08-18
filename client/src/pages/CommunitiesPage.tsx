@@ -57,7 +57,7 @@ function CommunityPostCard({ post, isAuthor, onReport, onDelete, onEdit, onSetVi
     {post.title && <h3 className="mt-4 font-display text-lg font-semibold text-[#244c3e]">{post.title}</h3>}
     <p dir="auto" className="mt-3 whitespace-pre-wrap text-sm leading-7 text-[#3e5c50]">{post.content}</p>
     {post.attachments.map((attachment, index) => <AttachmentPreview key={attachment.id ?? `${attachment.url}-${index}`} attachment={attachment} />)}
-    <div className="mt-4 flex items-center justify-between gap-2 border-t border-[#edf2eb] pt-3"><PostComments postId={post.id} commentCount={post.commentCount} /><p className="text-xs text-[#84978c]">{post.likeCount} إعجاب · {post.repostCount} مشاركة</p></div>
+    <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-[#edf2eb] pt-3"><PostComments postId={post.id} commentCount={post.commentCount} /><div className="flex items-center gap-3"><p className="text-xs text-[#84978c]">{post.likeCount} إعجاب · {post.repostCount} مشاركة</p>{!isAuthor && <button onClick={onReport} className="flex items-center gap-1 text-xs font-bold text-[#a64b41] transition-colors hover:text-[#81392f]" aria-label="الإبلاغ عن المنشور"><Flag size={14} />إبلاغ</button>}</div></div>
   </article>;
 }
 

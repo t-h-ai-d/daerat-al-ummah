@@ -185,3 +185,4 @@
 - [x] Diagnose and repair unexpected sign-outs after browser restarts, without extending session duration beyond a reasonable security boundary.
 - [x] Diagnose why a member’s persisted posts are absent after signing back in, distinguishing a feed filter issue from a production database-access issue.
 - [x] Diagnose and repair the live local-registration database query failure so duplicate checks return a clear Arabic result instead of raw SQL errors.
+- [x] Make the report action discoverable on posts by other members while preserving the three-dot menu for full author controls.
