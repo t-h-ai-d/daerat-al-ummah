@@ -97,4 +97,4 @@
 - [ ] Diagnose and restore the current database connection that blocks new local-account registration.
 - [ ] Correct Render-to-Aiven TLS URI parsing and redeploy the database connection fix.
 - [x] Correct the Aiven TLS URI parser and verify it with type checks, production build, and 26 safeguards tests.
-- [ ] Push the Aiven TLS fix to GitHub so Render can redeploy the corrected service.
+- [x] Push the Aiven TLS fix to GitHub so Render can redeploy the corrected service.
