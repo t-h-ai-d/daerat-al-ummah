@@ -1,4 +1,4 @@
-import { createConnection } from "mysql2/promise";
+import { createConnection, type ConnectionOptions } from "mysql2/promise";
 import { parseTlsDatabaseUrl } from "./db";
 
 export function browserPushSubscriptionTableSql() {
@@ -19,6 +19,13 @@ export function browserPushSubscriptionTableSql() {
   )`;
 }
 
+export function independentDatabaseTlsOptions(databaseUrl: string): ConnectionOptions {
+  // TiDB Cloud rejects plaintext connections. The independent Render deployment
+  // is TiDB-backed, so encryption is the safe default even if a legacy
+  // DATABASE_SSL variable was not added to the existing Render service.
+  return parseTlsDatabaseUrl(databaseUrl);
+}
+
 /**
  * Independent Render databases may pre-date Drizzle's migration journal. Never
  * run a full schema push at boot: it retries every historic CREATE TABLE.
@@ -29,19 +36,16 @@ export async function ensureIndependentBrowserPushSchema() {
   const databaseUrl = process.env.DATABASE_URL;
   if (!databaseUrl) return;
 
-  const parsedOptions = parseTlsDatabaseUrl(databaseUrl);
-  const connection = await createConnection({
-    ...parsedOptions,
-    ssl: process.env.DATABASE_SSL === "true" ? parsedOptions.ssl : undefined,
-  });
+  let connection: Awaited<ReturnType<typeof createConnection>> | null = null;
   try {
+    connection = await createConnection(independentDatabaseTlsOptions(databaseUrl));
     await connection.execute(browserPushSubscriptionTableSql());
     console.log("[Database] Browser push subscription table is ready.");
   } catch (error) {
-    // Push is optional. A missing/locked database must not take the social
-    // network offline; members can still use every existing feature.
+    // Push is optional. A missing or temporarily unavailable database must not
+    // take the social network offline; members can still use existing features.
     console.warn("[Database] Could not ensure the optional browser-push table:", error);
   } finally {
-    await connection.end();
+    await connection?.end();
   }
 }

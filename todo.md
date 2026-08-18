@@ -155,6 +155,10 @@
 - [ ] Run the approved manual Render deployment of GitHub commit 5ab7ba1 and verify that the live service accepts Arabic community links.
 - [x] Fix Render startup when an existing independent database already contains the comments table, without deleting or altering member data.
 - [ ] Redeploy the safe-startup fix to Render and confirm the service no longer runs the unsafe full schema push.
+- [ ] Audit the full production feature set from top to bottom and identify only verifiable remaining defects.
+- [ ] Verify that in-app reports save in the database and dispatch through server-side Resend delivery without opening a member mail client.
+- [x] Fix the browser-push startup guard so TiDB Cloud always receives a TLS connection and the Render service can start.
+- [ ] Produce a complete feature-by-feature audit based on every requirement from the full conversation.
 - [x] Audit the requested member features—local authentication, posts, friendships, messages, mentions, comments, uploads, communities, emoji/GIF, reports, Arabic RTL, finite feeds, and account controls—and repair any remaining member-facing gaps before release.
 - [x] Replace remaining English member-interface copy in discovery and notifications with Arabic RTL copy, without altering member-written content.
 - [x] Add a browser-push subscription data model and authenticated server procedures that never expose notification credentials to members.
