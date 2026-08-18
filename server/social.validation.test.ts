@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
-import { attachmentSchema, reportCategorySchema } from "./routers/social";
+import { attachmentSchema, communitySlugSchema, reportCategorySchema } from "./routers/social";
 import { assertPostOwnership, assertReportablePost, interleaveFeedAuthors } from "./db";
 
 function createAuthenticatedContext(): TrpcContext {
@@ -109,9 +109,14 @@ describe("social input safeguards", () => {
     expect(ordered.map(item => item.marker)).toEqual(["newest-a", "newest-b", "older-a", "newest-c"]);
   });
 
-  it("rejects invalid community identifiers before a community is created or used for a post", async () => {
+  it("accepts Arabic or English community links and rejects unsafe identifiers before a community is created", () => {
+    expect(communitySlugSchema.safeParse("حلقة-العلم").success).toBe(true);
+    expect(communitySlugSchema.safeParse("quran-study").success).toBe(true);
+    expect(communitySlugSchema.safeParse("حلقة العلم!").success).toBe(false);
+  });
+
+  it("rejects invalid community identifiers before a community is used for a post", async () => {
     const caller = appRouter.createCaller(createAuthenticatedContext());
-    await expect(caller.social.createCommunity({ name: "حلقة العلم", slug: "حلقة", description: "مساحة منظمة لمشاركة الدروس والنقاش الهادئ.", kind: "community", visibility: "public" })).rejects.toMatchObject({ code: "BAD_REQUEST" });
     await expect(caller.social.createPost({ content: "منشور", visibility: "public", communityId: 0, attachments: [] })).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
 });

@@ -18,7 +18,7 @@ export const attachmentSchema = z.object({
   sizeBytes: z.number().int().positive().max(MAX_ATTACHMENT_BYTES).nullable().optional(),
 });
 
-const communitySlugSchema = z.string().trim().toLowerCase().min(3).max(96).regex(/^[a-z0-9-]+$/, "استخدم أحرفًا إنجليزية صغيرة وأرقامًا وشرطات فقط.");
+export const communitySlugSchema = z.string().trim().toLowerCase().min(3).max(96).regex(/^[a-zA-Z0-9\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF-]+$/, "استخدم حروفًا أو أرقامًا أو شرطات فقط، بالعربية أو الإنجليزية.");
 
 const safeMimeTypes = new Set([
   "application/pdf",
