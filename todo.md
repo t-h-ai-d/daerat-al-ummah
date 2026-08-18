@@ -138,14 +138,16 @@
 - [x] Add and run safeguards for backend report submission and author-only post updates.
 - [x] Bring community post cards to parity with the home three-dot menu and in-app report flow.
 - [x] Update the Arabic privacy policy and terms to describe in-app server-delivered reports rather than browser mail links.
-- [ ] Push the verified repair release to GitHub and redeploy it to Render after the owner adds the Resend secret.
+- [x] Push the verified repair release to GitHub.
+- [ ] Redeploy the verified repair release to Render after the owner adds the Resend and VAPID secrets.
 - [ ] Verify avatar and post attachment uploads on the live Render and Backblaze B2 deployment after redeployment.
 - [x] Remove the remaining mailto report link from the member-facing rules page and describe the in-app server-delivered report flow.
 - [x] Replace the community attachment upload fallback with explicit Arabic error feedback.
 - [ ] Verify the community three-dot menu, author controls, and report form against a real rendered community post.
 - [x] Show expandable Arabic comment threads beneath home-feed posts, with a clear reply composer for signed-in members.
 - [x] Show the same expandable Arabic comment threads beneath community posts rather than only a comment count.
-- [ ] Add safeguards for post-comment retrieval and comment creation, then visually verify the empty and populated thread states.
+- [x] Add safeguards for post-comment retrieval and comment creation.
+- [ ] Visually verify the empty and populated comment-thread states using real member data.
 - [x] Audit the requested member features—local authentication, posts, friendships, messages, mentions, comments, uploads, communities, emoji/GIF, reports, Arabic RTL, finite feeds, and account controls—and repair any remaining member-facing gaps before release.
 - [x] Replace remaining English member-interface copy in discovery and notifications with Arabic RTL copy, without altering member-written content.
 - [x] Add a browser-push subscription data model and authenticated server procedures that never expose notification credentials to members.
