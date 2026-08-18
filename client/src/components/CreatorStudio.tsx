@@ -1,21 +1,34 @@
+import EmojiPicker from "@/components/EmojiPicker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import EmojiPicker from "@/components/EmojiPicker";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { ownerReviewMailto } from "@/lib/ownerReview";
 import { trpc } from "@/lib/trpc";
-import { FileImage, FilePlus2, Globe2, ImageUp, Loader2, LockKeyhole, Mail, Palette, Save, Trash2, Type, UserRoundX } from "lucide-react";
+import { FileImage, FilePlus2, Globe2, ImageUp, Loader2, LockKeyhole, Mail, Palette, Save, Trash2, Type, UserRoundX, Video } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { useLocation } from "wouter";
 import { toast } from "sonner";
+import { useLocation } from "wouter";
 
 type StyleChoice = "default" | "serif" | "emphasis";
+type UploadedAttachment = {
+  kind: "image" | "gif" | "video" | "file";
+  url: string;
+  storageKey?: string;
+  filename?: string;
+  mimeType?: string;
+  sizeBytes?: number;
+  scanStatus?: "pending" | "clean" | "blocked";
+};
+
+const MAX_ATTACHMENT_BYTES = 1_073_741_824;
+const SMALL_UPLOAD_FALLBACK_BYTES = 50_000_000;
+const isAudioOrVideo = (mimeType?: string) => Boolean(mimeType?.toLowerCase().startsWith("audio/") || mimeType?.toLowerCase().startsWith("video/"));
 
 function readFile(file: File) {
   return new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
-    reader.onerror = () => reject(new Error("تعذر قراءة الملف."));
+    reader.onerror = () => reject(new Error("تعذّر قراءة الملف."));
     reader.onload = () => resolve(String(reader.result).split(",")[1] || "");
     reader.readAsDataURL(file);
   });
@@ -33,26 +46,33 @@ export default function CreatorStudio() {
   const [content, setContent] = useState("");
   const [visibility, setVisibility] = useState<"public" | "friends">("public");
   const [textStyle, setTextStyle] = useState<StyleChoice>("default");
-  const [attachment, setAttachment] = useState<File | null>(null);
+  const [attachments, setAttachments] = useState<UploadedAttachment[]>([]);
   const [isAttachmentUploading, setIsAttachmentUploading] = useState(false);
   const uploadAvatar = trpc.social.uploadAvatar.useMutation();
   const prepareAttachmentUpload = trpc.social.prepareAttachmentUpload.useMutation();
-  const updateProfile = trpc.social.updateProfile.useMutation({ onSuccess: async () => { await utils.social.myProfile.invalidate(); toast.success("تم تحديث صورة الحساب."); } });
+  const uploadAttachment = trpc.social.uploadAttachment.useMutation();
+  const discardAttachmentUpload = trpc.social.discardAttachmentUpload.useMutation();
+  const updateProfile = trpc.social.updateProfile.useMutation({
+    onSuccess: async () => { await utils.social.myProfile.invalidate(); toast.success("تَمَّ تَحْدِيثُ صُورَةِ الحِساب."); },
+  });
   const createPost = trpc.social.createPost.useMutation({
     onSuccess: async result => {
-      setTitle(""); setContent(""); setAttachment(null); setTextStyle("default"); window.localStorage.removeItem("daerat-creator-draft");
+      const publishedTitle = title;
+      setTitle(""); setContent(""); setAttachments([]); setTextStyle("default");
+      window.localStorage.removeItem("daerat-creator-draft");
       await Promise.all([utils.social.myPosts.invalidate(), utils.social.feed.invalidate()]);
-      if (result.moderation.status === "under_review") toast.message(result.moderation.message, { duration: 10_000, action: { label: "مراسلة المالك", onClick: () => { window.location.href = ownerReviewMailto(result.postId, title); } } });
-      else toast.success("تم نشر المنشور.");
+      if (result.moderation.status === "under_review") {
+        toast.message(result.moderation.message, { duration: 10_000, action: { label: "مُراسَلَةُ المَالِك", onClick: () => { window.location.href = ownerReviewMailto(result.postId, publishedTitle); } } });
+      } else toast.success("تَمَّ نَشْرُ المَنْشُور.");
     },
     onError: error => toast.error(error.message),
   });
   const deletePost = trpc.social.deletePost.useMutation({
-    onSuccess: async () => { await Promise.all([utils.social.myPosts.invalidate(), utils.social.feed.invalidate()]); toast.success("تم حذف المنشور."); },
+    onSuccess: async () => { await Promise.all([utils.social.myPosts.invalidate(), utils.social.feed.invalidate()]); toast.success("تَمَّ حَذْفُ المَنْشُور."); },
     onError: error => toast.error(error.message),
   });
   const deleteAccount = trpc.auth.deleteOwnAccount.useMutation({
-    onSuccess: async () => { await logout(); toast.success("تم حذف الحساب. يمكنك إنشاء حساب جديد الآن."); setLocation("/auth"); },
+    onSuccess: async () => { await logout(); toast.success("تَمَّ حَذْفُ الحِساب. يمكنك إنشاء حساب جديد الآن."); setLocation("/auth"); },
     onError: error => toast.error(error.message),
   });
 
@@ -61,16 +81,14 @@ export default function CreatorStudio() {
       const raw = window.localStorage.getItem("daerat-creator-draft");
       if (!raw) return;
       const draft = JSON.parse(raw) as { title?: string; content?: string; visibility?: "public" | "friends"; textStyle?: StyleChoice };
-      setTitle(draft.title || "");
-      setContent(draft.content || "");
-      setVisibility(draft.visibility || "public");
-      setTextStyle(draft.textStyle || "default");
+      setTitle(draft.title || ""); setContent(draft.content || "");
+      setVisibility(draft.visibility || "public"); setTextStyle(draft.textStyle || "default");
     } catch { window.localStorage.removeItem("daerat-creator-draft"); }
   }, []);
 
   const saveDraft = () => {
     window.localStorage.setItem("daerat-creator-draft", JSON.stringify({ title, content, visibility, textStyle }));
-    toast.success("حُفِظَتِ المسوَّدةُ على هذا الجهاز.");
+    toast.success("حُفِظَتِ المُسَوَّدَةُ على هذا الجهاز.");
   };
 
   const setAvatar = async (file?: File) => {
@@ -80,64 +98,85 @@ export default function CreatorStudio() {
     try {
       const stored = await uploadAvatar.mutateAsync({ filename: file.name, mimeType: file.type, dataBase64: await readFile(file) });
       await updateProfile.mutateAsync({ avatarUrl: stored.url });
-    } catch (error) { toast.error(error instanceof Error ? error.message : "تعذر رفع الصورة."); }
+    } catch (error) { toast.error(error instanceof Error ? error.message : "تَعَذَّرَ رَفْعُ الصُّورَة."); }
   };
 
-  const uploadPostAttachment = async (file: File) => {
-    if (file.size > 1_073_741_824) throw new Error("الحد المشترك لكل مرفق هو 1 غيغابايت.");
+  const onPostFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files ?? []);
+    event.target.value = "";
+    if (!files.length) return;
+    const accepted: File[] = [];
+    let hasAudioOrVideo = attachments.some(attachment => isAudioOrVideo(attachment.mimeType));
+    for (const file of files) {
+      if (file.size > MAX_ATTACHMENT_BYTES) { toast.error(`تجاوز «${file.name}» الحَدَّ المُشتَرَك: 1 غيغابايت.`); continue; }
+      if (isAudioOrVideo(file.type)) {
+        if (hasAudioOrVideo) { toast.error(`لم يُضَف «${file.name}»: يُسمَح بفيديو أو صوت واحد فقط.`); continue; }
+        hasAudioOrVideo = true;
+      }
+      accepted.push(file);
+    }
+    if (!accepted.length) return;
     setIsAttachmentUploading(true);
     try {
-      const prepared = await prepareAttachmentUpload.mutateAsync({
-        filename: file.name,
-        mimeType: file.type || "application/octet-stream",
-        sizeBytes: file.size,
-      });
-      const response = await fetch(prepared.uploadUrl, {
-        method: "PUT",
-        headers: { "Content-Type": prepared.mimeType },
-        body: file,
-      });
-      if (!response.ok) throw new Error("تعذّر رفع الملف إلى التخزين الآمن.");
-      if (prepared.scanStatus === "pending") toast.message("رُفع الملف إلى الحجر الأمني؛ لن يُفتح أو يُنزّل قبل اكتمال الفحص الخارجي.");
-      return {
-        kind: prepared.kind,
-        url: prepared.url,
-        storageKey: prepared.key,
-        filename: prepared.filename,
-        mimeType: prepared.mimeType,
-        sizeBytes: prepared.sizeBytes,
-      };
-    } finally {
-      setIsAttachmentUploading(false);
-    }
+      for (const file of accepted) {
+        const mimeType = file.type || "application/octet-stream";
+        try {
+          const prepared = await prepareAttachmentUpload.mutateAsync({ filename: file.name, mimeType, sizeBytes: file.size });
+          const uploadUrl = new URL(prepared.uploadUrl);
+          if (!/^https?:$/.test(uploadUrl.protocol)) throw new Error("تعذّر تجهيز رابط الرفع الآمن.");
+          const response = await fetch(uploadUrl, { method: "PUT", headers: { "Content-Type": prepared.mimeType }, body: file });
+          if (!response.ok) throw new Error("لم يُستَكمَل الرفع المباشر.");
+          setAttachments(current => [...current, { kind: prepared.kind, url: prepared.url, storageKey: prepared.key, filename: prepared.filename, mimeType: prepared.mimeType, sizeBytes: prepared.sizeBytes, scanStatus: prepared.scanStatus }]);
+          if (prepared.scanStatus === "pending") toast.message("رُفِعَ الملف إلى الحَجْرِ الأَمْنِيِّ؛ لن يُفتَح قبل اكتمال الفحص.");
+        } catch {
+          if (file.size > SMALL_UPLOAD_FALLBACK_BYTES) throw new Error(`لم يكتمل رفع «${file.name}» بعد. جرّب ملفًا أصغر مؤقّتًا، ثم أَعِد المحاولة لاحقًا.`);
+          const fallback = await uploadAttachment.mutateAsync({ filename: file.name, mimeType, dataBase64: await readFile(file) });
+          setAttachments(current => [...current, { kind: fallback.kind, url: fallback.url, storageKey: fallback.key, filename: fallback.filename, mimeType: fallback.mimeType, sizeBytes: fallback.sizeBytes, scanStatus: fallback.scanStatus }]);
+          toast.message(`أُضيف «${file.name}» عبر المسار الآمن البديل.`);
+        }
+      }
+      toast.success(`أُضيف ${accepted.length} مرفق/مرفّقات.`);
+    } catch (error) {
+      toast.error(error instanceof Error && error.message ? error.message : "تَعَذَّرَ إِكْمالُ رَفْعِ المَرْفَق.");
+    } finally { setIsAttachmentUploading(false); }
+  };
+
+  const removeSelectedAttachment = async (attachment: UploadedAttachment, index: number) => {
+    try {
+      if (attachment.storageKey) await discardAttachmentUpload.mutateAsync({ storageKey: attachment.storageKey });
+      setAttachments(current => current.filter((_, itemIndex) => itemIndex !== index));
+      toast.success("حُذِفَ المرفق قبل النشر.");
+    } catch (error) { toast.error(error instanceof Error ? error.message : "تَعَذَّرَ حَذْفُ المَرْفَق."); }
   };
 
   const publish = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!content.trim()) return toast.error("اكتب محتوى المنشور أولاً.");
+    if (!content.trim() && !attachments.length) return toast.error("اكتب نصًّا، أو أضف مرفقًا واحدًا على الأقل.");
     try {
-      const attachments = [] as { kind: "image" | "gif" | "video" | "file"; url: string; storageKey?: string; filename?: string; mimeType?: string; sizeBytes?: number }[];
-      if (attachment) {
-        const stored = await uploadPostAttachment(attachment);
-        attachments.push(stored);
-      }
-      await createPost.mutateAsync({ title: title.trim() || undefined, content: content.trim(), visibility, textStyle, attachments });
-    } catch (error) { toast.error(error instanceof Error ? error.message : "تعذر نشر المنشور."); }
+      await createPost.mutateAsync({
+        title: title.trim() || undefined,
+        content: content.trim(),
+        visibility,
+        textStyle,
+        attachments: attachments.map(attachment => ({ kind: attachment.kind, url: attachment.url, storageKey: attachment.storageKey ?? null, filename: attachment.filename ?? null, mimeType: attachment.mimeType ?? null, sizeBytes: attachment.sizeBytes ?? null })),
+      });
+    } catch (error) { toast.error(error instanceof Error ? error.message : "تَعَذَّرَ نَشْرُ المَنْشُور."); }
   };
 
   const canDeleteLocalAccount = user?.loginMethod === "local";
 
   return <section className="mt-6 max-w-4xl px-4 pb-12 sm:px-6 lg:px-8" dir="rtl">
     <div className="rounded-[24px] border border-[#dce5da] bg-white p-5 shadow-[0_14px_40px_rgba(26,69,52,0.05)] sm:p-6">
-      <div className="flex items-start justify-between gap-4"><div><p className="text-[10px] font-bold tracking-[0.16em] text-[#a4822e]">استوديو المنشئ</p><h2 className="mt-1 font-display text-2xl font-semibold text-[#163e33]">صورتك ومنشوراتك بين يديك</h2><p className="mt-2 max-w-xl text-sm leading-6 text-[#678073]">ارفع الصورة من جهازك مباشرة، واختر عنوانًا ونمطًا واضحًا للنص، ثم حدد جمهور كل منشور.</p></div><Palette className="text-[#2d7255]" size={25} /></div>
-      <div className="mt-6 flex flex-wrap items-center gap-4 rounded-2xl bg-[#f7faf6] p-4"><div className="h-14 w-14 overflow-hidden rounded-2xl bg-[#dce9df]">{profile.data?.avatarUrl ? <img src={profile.data.avatarUrl} alt="صورة الحساب" className="h-full w-full object-cover" /> : <div className="grid h-full place-items-center text-sm font-bold text-[#4e7665]">{(profile.data?.name || "ع").slice(0, 1)}</div>}</div><div className="min-w-0 flex-1"><p className="text-sm font-extrabold text-[#244a3c]">صورة الحساب</p><p className="mt-1 text-xs text-[#71897d]">PNG أو JPG أو WebP — حد أقصى 6 ميغابايت.</p></div><input ref={avatarInput} className="hidden" type="file" accept="image/*" onChange={event => { void setAvatar(event.target.files?.[0]); event.currentTarget.value = ""; }} /><Button type="button" variant="outline" disabled={uploadAvatar.isPending || updateProfile.isPending} onClick={() => avatarInput.current?.click()} className="rounded-xl"><ImageUp size={16} />رفع صورة</Button></div>
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#dce8dc] bg-[#f8fbf7] p-4"><div><p className="text-sm font-extrabold text-[#244a3c]">مَساحَةُ الإِنشاء</p><p className="mt-1 text-xs leading-5 text-[#71897d]">احفظ مسوَّدتك هنا. وللنشر بصور وملفات متعدّدة افتح الناشر الكامل.</p></div><Button type="button" variant="outline" onClick={() => setLocation("/")} className="rounded-xl border-[#b9d2be] text-[#155a40] hover:bg-[#edf7ee]">النّاشِر الكامل</Button></div>
-      <form onSubmit={event => { void publish(event); }} className="mt-7 border-t border-[#e7eee6] pt-6"><div className="flex items-center gap-2 text-sm font-extrabold text-[#244a3c]"><Type size={17} />منشور جديد</div><Input value={title} onChange={event => setTitle(event.target.value)} maxLength={240} placeholder="عنوان اختياري للمنشور" className="mt-4 h-11 rounded-xl border-[#d7e3d8] text-right" /><div className="relative mt-3"><Textarea value={content} onChange={event => setContent(event.target.value)} required maxLength={5000} placeholder="اكتب ما تريد مشاركته…" className="min-h-32 rounded-xl border-[#d7e3d8] pl-11 text-right leading-7" /><div className="absolute bottom-2 left-2"><EmojiPicker onSelect={emoji => setContent(current => `${current}${current ? " " : ""}${emoji}`)} /></div></div>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2"><div><p className="mb-2 text-xs font-bold text-[#49685c]">نمط النص</p><div className="flex flex-wrap gap-2">{(["default", "serif", "emphasis"] as const).map(style => <button key={style} type="button" onClick={() => setTextStyle(style)} className={`rounded-lg border px-3 py-2 text-xs font-bold ${textStyle === style ? "border-[#2b7758] bg-[#edf7ee] text-[#176047]" : "border-[#d7e3d8] text-[#678073]"}`}>{style === "default" ? "عادي" : style === "serif" ? "تقليدي" : "تأكيد"}</button>)}</div></div><div><p className="mb-2 text-xs font-bold text-[#49685c]">خصوصية المنشور</p><div className="flex gap-2"><button type="button" onClick={() => setVisibility("public")} className={`flex items-center gap-1 rounded-lg border px-3 py-2 text-xs font-bold ${visibility === "public" ? "border-[#2b7758] bg-[#edf7ee] text-[#176047]" : "border-[#d7e3d8] text-[#678073]"}`}><Globe2 size={14} />عام</button><button type="button" onClick={() => setVisibility("friends")} className={`flex items-center gap-1 rounded-lg border px-3 py-2 text-xs font-bold ${visibility === "friends" ? "border-[#2b7758] bg-[#edf7ee] text-[#176047]" : "border-[#d7e3d8] text-[#678073]"}`}><LockKeyhole size={14} />الأصدقاء</button></div></div></div>
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3"><div className="flex flex-wrap gap-2"><input ref={mediaInput} className="hidden" type="file" accept="*/*" onChange={event => { const selected = event.target.files?.[0] ?? null; event.currentTarget.value = ""; if (selected && selected.size > 1_073_741_824) { toast.error("الحدُّ المُشتَرَكُ لكُلِّ مُرفَقٍ هو 1 غيغابايت."); return; } setAttachment(selected); }} /><Button type="button" variant="outline" disabled={isAttachmentUploading} onClick={() => mediaInput.current?.click()} className="rounded-xl"><FilePlus2 size={16} />{attachment ? attachment.name : "إضافة ملف حتى 1 غيغابايت"}</Button><Button type="button" variant="outline" onClick={saveDraft} className="rounded-xl"><Save size={16} />حفظ مسوَّدة</Button></div><Button type="submit" disabled={createPost.isPending || isAttachmentUploading} className="rounded-xl bg-[#0d4937] hover:bg-[#176047]">{createPost.isPending || isAttachmentUploading ? <Loader2 className="animate-spin" size={16} /> : <FileImage size={16} />}نشر</Button></div>
+      <div className="flex items-start justify-between gap-4"><div><p className="text-[10px] font-bold tracking-[0.16em] text-[#a4822e]">اِسْتُودْيُو المُنْشِئ</p><h2 className="mt-1 font-display text-2xl font-semibold text-[#163e33]">صُورَتُكَ ومَنْشُوراتُكَ بين يَدَيْكَ</h2><p className="mt-2 max-w-xl text-sm leading-6 text-[#678073]">ارفع صُورتك مباشرة، واكتب نصًّا أو انشر صورًا وملفات وفيديو من دون إلزام بنوع واحد.</p></div><Palette className="text-[#2d7255]" size={25} /></div>
+      <div className="mt-6 flex flex-wrap items-center gap-4 rounded-2xl bg-[#f7faf6] p-4"><div className="h-14 w-14 overflow-hidden rounded-2xl bg-[#dce9df]">{profile.data?.avatarUrl ? <img src={profile.data.avatarUrl} alt="صُورَةُ الحِساب" className="h-full w-full object-cover" /> : <div className="grid h-full place-items-center text-sm font-bold text-[#4e7665]">{(profile.data?.name || "ع").slice(0, 1)}</div>}</div><div className="min-w-0 flex-1"><p className="text-sm font-extrabold text-[#244a3c]">صُورَةُ الحِساب</p><p className="mt-1 text-xs text-[#71897d]">PNG أو JPG أو WebP — حدّ أقصى 6 ميغابايت.</p></div><input ref={avatarInput} className="hidden" type="file" accept="image/*" onChange={event => { void setAvatar(event.target.files?.[0]); event.currentTarget.value = ""; }} /><Button type="button" variant="outline" disabled={uploadAvatar.isPending || updateProfile.isPending} onClick={() => avatarInput.current?.click()} className="rounded-xl"><ImageUp size={16} />رَفْعُ صُورَة</Button></div>
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#dce8dc] bg-[#f8fbf7] p-4"><div><p className="text-sm font-extrabold text-[#244a3c]">مَساحَةُ الإِنشاء</p><p className="mt-1 text-xs leading-5 text-[#71897d]">احفظ مسوَّدتك هنا، وانشر نصًّا أو أيّ مزيج من الصور والملفات؛ يُسمح بفيديو أو صوت واحد فقط.</p></div><Button type="button" variant="outline" onClick={() => setLocation("/")} className="rounded-xl border-[#b9d2be] text-[#155a40] hover:bg-[#edf7ee]">النّاشِرُ الكامِل</Button></div>
+      <form onSubmit={event => { void publish(event); }} className="mt-7 border-t border-[#e7eee6] pt-6"><div className="flex items-center gap-2 text-sm font-extrabold text-[#244a3c]"><Type size={17} />مَنْشُورٌ جَديد</div><Input value={title} onChange={event => setTitle(event.target.value)} maxLength={240} placeholder="عُنْوانٌ اختياريّ للمَنْشُور" className="mt-4 h-11 rounded-xl border-[#d7e3d8] text-right" /><div className="relative mt-3"><Textarea value={content} onChange={event => setContent(event.target.value)} maxLength={5000} placeholder="اكتب ما تريد مشاركته، أو انشر المرفق وحده…" className="min-h-32 rounded-xl border-[#d7e3d8] pl-11 text-right leading-7" /><div className="absolute bottom-2 left-2"><EmojiPicker onSelect={emoji => setContent(current => `${current}${current ? " " : ""}${emoji}`)} /></div></div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2"><div><p className="mb-2 text-xs font-bold text-[#49685c]">نَمَطُ النَّصّ</p><div className="flex flex-wrap gap-2">{(["default", "serif", "emphasis"] as const).map(style => <button key={style} type="button" onClick={() => setTextStyle(style)} className={`rounded-lg border px-3 py-2 text-xs font-bold ${textStyle === style ? "border-[#2b7758] bg-[#edf7ee] text-[#176047]" : "border-[#d7e3d8] text-[#678073]"}`}>{style === "default" ? "عادي" : style === "serif" ? "تَقْليديّ" : "تأكيد"}</button>)}</div></div><div><p className="mb-2 text-xs font-bold text-[#49685c]">خُصُوصِيَّةُ المَنْشُور</p><div className="flex gap-2"><button type="button" onClick={() => setVisibility("public")} className={`flex items-center gap-1 rounded-lg border px-3 py-2 text-xs font-bold ${visibility === "public" ? "border-[#2b7758] bg-[#edf7ee] text-[#176047]" : "border-[#d7e3d8] text-[#678073]"}`}><Globe2 size={14} />عام</button><button type="button" onClick={() => setVisibility("friends")} className={`flex items-center gap-1 rounded-lg border px-3 py-2 text-xs font-bold ${visibility === "friends" ? "border-[#2b7758] bg-[#edf7ee] text-[#176047]" : "border-[#d7e3d8] text-[#678073]"}`}><LockKeyhole size={14} />الأصدقاء</button></div></div></div>
+        {attachments.length > 0 && <div className="mt-4 flex flex-wrap gap-2">{attachments.map((attachment, index) => <span key={`${attachment.url}-${index}`} className="inline-flex max-w-full items-center gap-1.5 rounded-lg bg-[#edf4ee] py-1.5 pl-2.5 pr-1 text-[11px] font-bold text-[#416d5b]">{isAudioOrVideo(attachment.mimeType) ? <Video size={13} /> : <FilePlus2 size={13} />}<span className="max-w-40 truncate">{attachment.filename || attachment.kind}</span><button type="button" disabled={discardAttachmentUpload.isPending} onClick={() => void removeSelectedAttachment(attachment, index)} className="rounded-md px-1 text-[#6d8f7d] hover:bg-white hover:text-[#a14f36]" aria-label={`حَذْفُ ${attachment.filename || "المرفق"}`}>×</button></span>)}</div>}
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3"><div className="flex flex-wrap gap-2"><input ref={mediaInput} className="hidden" type="file" accept="*/*" multiple onChange={event => { void onPostFileSelect(event); }} /><Button type="button" variant="outline" disabled={isAttachmentUploading} onClick={() => mediaInput.current?.click()} className="rounded-xl"><FilePlus2 size={16} />إِضافَةُ مُرْفَقات</Button><Button type="button" variant="outline" onClick={saveDraft} className="rounded-xl"><Save size={16} />حِفْظُ مُسَوَّدَة</Button></div><Button type="submit" disabled={createPost.isPending || isAttachmentUploading || (!content.trim() && !attachments.length)} className="rounded-xl bg-[#0d4937] hover:bg-[#176047]">{createPost.isPending || isAttachmentUploading ? <Loader2 className="animate-spin" size={16} /> : <FileImage size={16} />}نَشْر</Button></div>
       </form>
-      <div className="mt-8 border-t border-[#e7eee6] pt-6"><h3 className="text-sm font-extrabold text-[#244a3c]">منشوراتي</h3><div className="mt-3 space-y-2">{posts.isLoading ? <p className="flex items-center gap-2 text-xs text-[#71897d]"><Loader2 className="animate-spin" size={14} />جارٍ تحميل منشوراتك…</p> : posts.data?.length ? posts.data.map(post => <div key={post.id} className="flex items-start justify-between gap-3 rounded-xl bg-[#f8fbf7] p-3"><div className="min-w-0"><p className="truncate text-sm font-bold text-[#294e40]">{post.title || post.content.slice(0, 80)}</p><p className="mt-1 text-xs text-[#758d82]">{post.visibility === "friends" ? "للأصدقاء فقط" : "عام"} · {post.moderationStatus === "under_review" ? "قيد مراجعة بشرية" : post.moderationStatus === "removed" ? "تمت الإزالة" : "منشور"} · {new Date(post.createdAt).toLocaleDateString("ar")}</p>{post.moderationStatus === "under_review" && <a href={ownerReviewMailto(post.id, post.title)} className="mt-2 inline-flex items-center gap-1 text-[11px] font-bold text-[#155a40] underline decoration-[#c6a04a] underline-offset-4"><Mail size={13} />مراسلة المالك للمراجعة</a>}</div><Button size="sm" variant="outline" disabled={deletePost.isPending} onClick={() => { if (window.confirm("هل تريد حذف هذا المنشور نهائيًا؟")) deletePost.mutate({ postId: post.id }); }} className="rounded-lg border-[#e9c8c2] text-[#a24f41] hover:bg-[#fff4f2]"><Trash2 size={14} />حذف</Button></div>) : <p className="text-xs text-[#748a7f]">لا توجد منشورات لك بعد.</p>}</div></div>
-      <div className="mt-8 rounded-2xl border border-[#ecd1cc] bg-[#fff8f6] p-4"><div className="flex items-start gap-3"><UserRoundX className="mt-0.5 text-[#ad574a]" size={19} /><div><h3 className="text-sm font-extrabold text-[#7e352d]">بدء حساب جديد</h3><p className="mt-1 text-xs leading-5 text-[#92635b]">{canDeleteLocalAccount ? "يحذف هذا الحساب وكل بياناته من دائرة الأمة، ثم يمكنك التسجيل مجددًا بنفس البريد واسم المستخدم." : "هذا الحساب متصل بطريقة خارجية، وليس حسابًا محليًا بالبريد واسم المستخدم وكلمة المرور؛ لذلك لا يمكن حذفه من هذه الصفحة."}</p><Button type="button" size="sm" variant="outline" disabled={!canDeleteLocalAccount || deleteAccount.isPending} onClick={() => { if (window.confirm("سيُحذف حسابك ومنشوراتك ورسائلك وبياناتك نهائيًا. هل تريد المتابعة؟")) deleteAccount.mutate(); }} className="mt-3 rounded-lg border-[#dfb1aa] text-[#9d4338] hover:bg-[#fff1ee]"><Trash2 size={14} />{canDeleteLocalAccount ? "حذف حسابي وبدء جديد" : "الحذف غير متاح لهذا الحساب"}</Button></div></div></div>
+      <div className="mt-8 border-t border-[#e7eee6] pt-6"><h3 className="text-sm font-extrabold text-[#244a3c]">مَنْشُوراتي</h3><div className="mt-3 space-y-2">{posts.isLoading ? <p className="flex items-center gap-2 text-xs text-[#71897d]"><Loader2 className="animate-spin" size={14} />جارٍ تَحْميلُ مَنْشُوراتِكَ…</p> : posts.data?.length ? posts.data.map(post => <div key={post.id} className="flex items-start justify-between gap-3 rounded-xl bg-[#f8fbf7] p-3"><div className="min-w-0"><p className="truncate text-sm font-bold text-[#294e40]">{post.title || post.content.slice(0, 80) || "مُرْفَق"}</p><p className="mt-1 text-xs text-[#758d82]">{post.visibility === "friends" ? "للأصدقاء فقط" : "عام"} · {post.moderationStatus === "under_review" ? "قَيْدَ مُراجَعَةٍ بَشَرِيَّة" : post.moderationStatus === "removed" ? "تَمَّتِ الإِزالَة" : "مَنْشُور"} · {new Date(post.createdAt).toLocaleDateString("ar")}</p>{post.moderationStatus === "under_review" && <a href={ownerReviewMailto(post.id, post.title)} className="mt-2 inline-flex items-center gap-1 text-[11px] font-bold text-[#155a40] underline decoration-[#c6a04a] underline-offset-4"><Mail size={13} />مُراسَلَةُ المَالِك للمُراجَعَة</a>}</div><Button size="sm" variant="outline" disabled={deletePost.isPending} onClick={() => { if (window.confirm("هل تريد حذف هذا المنشور نهائيًّا؟")) deletePost.mutate({ postId: post.id }); }} className="rounded-lg border-[#e9c8c2] text-[#a24f41] hover:bg-[#fff4f2]"><Trash2 size={14} />حَذْف</Button></div>) : <p className="text-xs text-[#748a7f]">لا توجد منشورات لك بعد.</p>}</div></div>
+      <div className="mt-8 rounded-2xl border border-[#ecd1cc] bg-[#fff8f6] p-4"><div className="flex items-start gap-3"><UserRoundX className="mt-0.5 text-[#ad574a]" size={19} /><div><h3 className="text-sm font-extrabold text-[#7e352d]">بَدْءُ حِسابٍ جَديد</h3><p className="mt-1 text-xs leading-5 text-[#92635b]">{canDeleteLocalAccount ? "يحذف هذا الحساب وكل بياناته من دائرة الأمة، ثم يمكنك التسجيل مجددًا بنفس البريد واسم المستخدم." : "هذا الحساب متصل بطريقة خارجية، وليس حسابًا محليًا بالبريد واسم المستخدم وكلمة المرور؛ لذلك لا يمكن حذفه من هذه الصفحة."}</p><Button type="button" size="sm" variant="outline" disabled={!canDeleteLocalAccount || deleteAccount.isPending} onClick={() => { if (window.confirm("سيُحذف حسابك ومنشوراتك ورسائلك وبياناتك نهائيًّا. هل تريد المتابعة؟")) deleteAccount.mutate(); }} className="mt-3 rounded-lg border-[#dfb1aa] text-[#9d4338] hover:bg-[#fff1ee]"><Trash2 size={14} />{canDeleteLocalAccount ? "حَذْفُ حِسابي وبَدْءٌ جَديد" : "الحَذْفُ غير مُتاحٍ لهذا الحِساب"}</Button></div></div></div>
     </div>
   </section>;
 }

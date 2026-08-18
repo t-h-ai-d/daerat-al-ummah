@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { TrpcContext } from "./_core/context";
 import { appRouter } from "./routers";
+import { createPostInputSchema } from "./routers/social";
 import { assertLocalAccountDeletionAllowed, assertPostOwnership } from "./db";
 import { attachmentScanStatus, isAttachmentDownloadAllowed } from "./attachmentSecurity";
 
@@ -30,6 +31,13 @@ describe("creator controls validation", () => {
   it("rejects an unsupported text style before persistence", async () => {
     const caller = appRouter.createCaller(ctx);
     await expect(caller.social.createPost({ content: "نص صالح", textStyle: "invalid" as never, visibility: "public", attachments: [] })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+
+  it("accepts a post that contains an attachment without visible text", () => {
+    expect(createPostInputSchema.parse({
+      content: "",
+      attachments: [{ kind: "file", url: "/uploads/1/posts/attachment.pdf", storageKey: "1/posts/attachment.pdf", filename: "attachment.pdf", mimeType: "application/pdf", sizeBytes: 120 }],
+    }).attachments).toHaveLength(1);
   });
 
   it("rejects invalid delete identifiers before the author-only deletion check", async () => {

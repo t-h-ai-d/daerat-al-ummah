@@ -190,13 +190,13 @@ export default function Home() {
           if (!["https:", "http:"].includes(uploadUrl.protocol)) throw new Error("تعذّر تجهيز رابط الرفع الآمن.");
           const response = await fetch(uploadUrl, { method: "PUT", headers: { "Content-Type": prepared.mimeType }, body: file });
           if (!response.ok) throw new Error("لم يُستَكمَل الرفع المباشر.");
-          const { uploadUrl: _ignored, sharedLimitBytes: _limit, ...attachment } = prepared;
-          setAttachments(current => [...current, attachment]);
+          const { uploadUrl: _ignored, sharedLimitBytes: _limit, key, ...attachment } = prepared;
+          setAttachments(current => [...current, { ...attachment, storageKey: key }]);
           if (prepared.scanStatus === "pending") toast.message("رُفِعَ الملف إلى الحَجْر الأمني؛ لن يُفتَح قبل اكتمال الفحص.");
         } catch {
           if (file.size > SMALL_UPLOAD_FALLBACK_BYTES) throw new Error(`لم يكتمل رفع «${file.name}» بعد. جرّب ملفًا أصغر مؤقّتًا، ثم أَعِد المحاولة لاحقًا.`);
           const fallback = await uploadAttachment.mutateAsync({ filename: file.name, mimeType, dataBase64: await readFileAsBase64(file) });
-          setAttachments(current => [...current, fallback]);
+          setAttachments(current => [...current, { ...fallback, storageKey: fallback.key }]);
           toast.message(`أُضيف «${file.name}» عبر المسار الآمن البديل.`);
         }
       }

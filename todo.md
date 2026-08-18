@@ -154,7 +154,7 @@
 - [ ] Accept executable attachments only into a non-downloadable quarantine state until an external antivirus scan returns a clean result.
 - [ ] Surface pending, clean, and blocked scan states for every attachment without claiming that antivirus scanning is infallible.
 - [ ] Enforce one explicitly stated shared maximum size per attachment regardless of image, video, document, archive, or executable type.
-- [ ] Replace Creator Studio’s remaining Base64 attachment path and 50 MB wording with the same direct-upload shared-limit workflow used by home and communities.
+- [x] Replace Creator Studio’s remaining Base64 attachment path and 50 MB wording with the same direct-upload shared-limit workflow used by home and communities.
 - [x] Remove the remaining mailto report link from the member-facing rules page and describe the in-app server-delivered report flow.
 - [x] Replace the community attachment upload fallback with explicit Arabic error feedback.
 - [ ] Verify the community three-dot menu, author controls, and report form against a real rendered community post.
@@ -193,7 +193,7 @@
 - [x] Add safe Arabic image and video viewers plus controlled attachment download, share, and repost actions that honor quarantine status.
 - [x] Add participant-controlled conversation deletion and sender-controlled message deletion with strict server-side authorization.
 - [ ] Capture and fix the current live Backblaze attachment-upload error for image, video, and general file uploads before any further media features.
-- [ ] Let members select multiple attachments, remove any selected file before publishing, and permit only one combined video or audio attachment per post.
+- [x] Let members select multiple attachments, remove any selected file before publishing, and permit only one combined video or audio attachment per post.
 - [x] Enhance in-app notifications with clear Arabic event labels, unread state, and direct links to the relevant conversation, request, or post.
 - [x] Repair friendship-request visibility and acceptance actions so requested members can see and respond to incoming requests.
 - [x] Replace the profile avatar URL-only field with secure direct image upload and preview controls.
@@ -203,3 +203,5 @@
 - [x] Restore member-created tags/hashtags in posts with Arabic RTL display and discovery support.
 - [x] Add member-authorized deletion controls for their own direct messages, their own conversations, and their own in-app notifications.
 - [x] Build a member-facing «استوديو المُنشِئ» page for drafts, post-format selection, and direct access to publishing tools.
+- [x] Align Creator Studio with the direct-upload, multi-attachment, attachment-only publishing workflow used on the main composer.
+- [x] Permit attachment-only community posts and give them the same Arabic upload recovery behavior as the main composer.

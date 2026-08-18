@@ -106,8 +106,9 @@ export function CommunityDetailPage() {
   const community = trpc.social.community.useQuery({ slug: slug ?? "" });
   const communityId = community.data?.community.id ?? 0;
   const feed = trpc.social.communityFeed.useQuery({ communityId }, { enabled: Boolean(communityId) });
-  const [content, setContent] = useState("");
+  const [rawContent, setContent] = useState("");
   const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const content = rawContent || (attachments.length ? "\u200B" : "");
   const [showSubcommunityForm, setShowSubcommunityForm] = useState(false);
   const [reportPost, setReportPost] = useState<CommunityPost | null>(null);
   const [reportCategory, setReportCategory] = useState<ReportCategory>("scam");
@@ -156,13 +157,13 @@ export function CommunityDetailPage() {
           if (directUploadUrl.protocol !== "https:" && directUploadUrl.protocol !== "http:") throw new Error("تعذّر تجهيز رابط الرفع الآمن.");
           const response = await fetch(directUploadUrl, { method: "PUT", headers: { "Content-Type": prepared.mimeType }, body: file });
           if (!response.ok) throw new Error("تعذّر رفع الملف إلى التخزين الآمن.");
-          const { uploadUrl: _uploadUrl, sharedLimitBytes: _sharedLimitBytes, ...attachment } = prepared;
-          setAttachments(current => [...current, attachment]);
+          const { uploadUrl: _uploadUrl, sharedLimitBytes: _sharedLimitBytes, key, ...attachment } = prepared;
+          setAttachments(current => [...current, { ...attachment, storageKey: key }]);
           if (prepared.scanStatus === "pending") toast.message("رُفع الملف إلى الحجر الأمني؛ لن يُفتح أو يُنزّل قبل اكتمال الفحص الخارجي.");
         } catch {
           if (file.size > SMALL_UPLOAD_FALLBACK_BYTES) throw new Error(`لم يكتمل رفع «${file.name}» بعد. احفظ المنشور أو جرّب ملفًا أصغر مؤقتًا؛ الرفع الكبير سيعود تلقائيًا عند اكتمال إعداد التخزين.`);
           const fallback = await uploadAttachment.mutateAsync({ filename: file.name, mimeType, dataBase64: await readFileAsBase64(file) });
-          setAttachments(current => [...current, fallback]);
+          setAttachments(current => [...current, { ...fallback, storageKey: fallback.key }]);
           toast.message(`أُضيف «${file.name}» عبر المسار الآمن البديل.`);
         }
       }
@@ -179,7 +180,7 @@ export function CommunityDetailPage() {
     setAttachments(current => current.filter((_, itemIndex) => itemIndex !== index));
     toast.success("تم حذف المرفق قبل النشر.");
   };
-  const publish = (event: React.FormEvent) => { event.preventDefault(); if (!content.trim()) return; createPost.mutate({ content: content.trim(), visibility: "public", communityId: item.id, attachments: attachments.map(attachment => ({ kind: attachment.kind, url: attachment.url, storageKey: attachment.storageKey ?? null, filename: attachment.filename ?? null, mimeType: attachment.mimeType ?? null, sizeBytes: attachment.sizeBytes ?? null })) }); };
+  const publish = (event: React.FormEvent) => { event.preventDefault(); if (!rawContent.trim() && !attachments.length) return toast.error("اكتب نصًّا، أو أضف مرفقًا واحدًا على الأقل."); createPost.mutate({ content: rawContent.trim(), visibility: "public", communityId: item.id, attachments: attachments.map(attachment => ({ kind: attachment.kind, url: attachment.url, storageKey: attachment.storageKey ?? null, filename: attachment.filename ?? null, mimeType: attachment.mimeType ?? null, sizeBytes: attachment.sizeBytes ?? null })) }); };
   const openReport = (post: CommunityPost) => { if (!ensureSignedIn()) return; setReportPost(post); setReportCategory("scam"); setReportDetails(""); };
   const sendReport = () => { if (reportPost) submitReport.mutate({ postId: reportPost.id, category: reportCategory, ...(reportDetails.trim() ? { details: reportDetails.trim() } : {}) }); };
   const deleteOwnPost = (postId: number) => { if (window.confirm("هل تريد حذف منشورك نهائيًا؟ لا يمكن التراجع عن هذا الإجراء.")) deletePost.mutate({ postId }); };
