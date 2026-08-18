@@ -74,3 +74,7 @@
 - [x] Document required, optional, and unsupported environment variables for an external Node/MySQL deployment.
 - [x] Replace managed avatar and attachment storage with user-controlled S3-compatible object storage configuration.
 - [x] Validate the portable Node build after the storage replacement and update the GitHub handoff instructions.
+- [x] Remove the wouter patched-dependency requirement so external builders that install before copying source files do not fail.
+- [x] Verify and publish the patch-free frozen-lockfile build for the external host.
+- [ ] Push the patch-free package metadata and lockfile to GitHub, then save the verified deployment state.
+- [ ] Update the external deployment notes and retry the host build from the corrected commit.

@@ -1,5 +1,5 @@
 # Portable production image for Node-based hosts.
-# Copy the full source before pnpm install: pnpm needs patches/wouter@3.7.1.patch.
+# Copy the complete source before installing so every normal project file is available to the build.
 FROM node:22-slim
 
 WORKDIR /app

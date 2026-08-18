@@ -14,6 +14,8 @@ Choose **node-base** and enable **MySQL**. Do not use a static runtime because t
 | Start | `pnpm start` |
 | Node version | 22 |
 
+The current GitHub source is **patch-free**: do not add `patches/wouter@3.7.1.patch`, and do not use an old source ZIP. Redeploy only after the host fetches commit `efdbdc3` or a newer commit from the `main` branch.
+
 ## 3. Required environment variables
 
 Set these in the host's secret or environment-variable screen. Do not commit them to GitHub.
