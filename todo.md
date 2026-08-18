@@ -78,3 +78,7 @@
 - [x] Verify and publish the patch-free frozen-lockfile build for the external host.
 - [ ] Push the patch-free package metadata and lockfile to GitHub, then save the verified deployment state.
 - [ ] Update the external deployment notes and retry the host build from the corrected commit.
+- [x] Verify the Cloudflare hosting, database, and upload architecture that is compatible with this Node/MySQL application.
+- [x] Write and publish a complete Cloudflare deployment, secrets, and backup guide for the platform.
+- [ ] Push the Cloudflare guide and research notes to the private repository, then save the documented deployment state.
+- [ ] Review the committed guide for the final Worker, Hyperdrive, R2, secrets, and recovery instructions.
