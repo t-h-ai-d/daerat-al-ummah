@@ -11,6 +11,5 @@ RUN npm install -g corepack@latest \
   && corepack pnpm build
 
 ENV NODE_ENV=production
-ENV AUTO_DB_PUSH=true
 
-CMD ["sh", "-c", "if [ \"$AUTO_DB_PUSH\" = \"true\" ]; then pnpm db:push; fi; exec node dist/index.js"]
+CMD ["node", "dist/index.js"]

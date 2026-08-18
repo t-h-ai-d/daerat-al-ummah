@@ -16,7 +16,7 @@ services:
       - key: DATABASE_SSL
         value: "true"
       - key: AUTO_DB_PUSH
-        value: "true"
+        value: "false"
       - key: OPENAI_API_KEY
         sync: false
       - key: RESEND_API_KEY
