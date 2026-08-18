@@ -72,3 +72,5 @@
 - [x] Provide the exact free Node/MySQL deployment settings, environment variables, and independent backup plan for new platform data.
 - [x] Add an exact MySQL export, restore, and off-host backup workflow for the new independent database.
 - [x] Document required, optional, and unsupported environment variables for an external Node/MySQL deployment.
+- [x] Replace managed avatar and attachment storage with user-controlled S3-compatible object storage configuration.
+- [x] Validate the portable Node build after the storage replacement and update the GitHub handoff instructions.

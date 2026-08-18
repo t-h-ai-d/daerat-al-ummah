@@ -28,6 +28,21 @@ The application automatically reads the host-provided `PORT`; do not hard-code o
 
 If the database password contains characters such as `@`, `:`, `/`, or `#`, URL-encode that password before putting it in `DATABASE_URL`.
 
+### User-owned upload storage variables
+
+Create an S3-compatible bucket under an account you control, then set every value below. For Cloudflare R2, use the R2 S3 endpoint in the form `https://<ACCOUNT_ID>.r2.cloudflarestorage.com`, set `S3_REGION` to `auto`, and create an access key limited to this bucket.
+
+| Variable | Value |
+| --- | --- |
+| `S3_ENDPOINT` | Your bucket provider's S3-compatible API endpoint |
+| `S3_REGION` | `auto` for Cloudflare R2; otherwise your provider's region |
+| `S3_BUCKET` | The exact bucket name |
+| `S3_ACCESS_KEY_ID` | Bucket access key ID |
+| `S3_SECRET_ACCESS_KEY` | Bucket secret access key |
+| `S3_FORCE_PATH_STYLE` | Omit or set `false` for R2; set `true` only for providers that require path-style URLs |
+
+The application keeps bucket credentials server-side. Browser users receive short-lived download redirects through `/uploads/...`; the bucket does not need to be publicly readable.
+
 ### Leave these variables unset
 
 | Variable | External-host setting | Effect |
@@ -36,10 +51,10 @@ If the database password contains characters such as `@`, `:`, `/`, or `#`, URL-
 | `VITE_OAUTH_PORTAL_URL` | Omit | Not used by the active email/username/password sign-in flow. |
 | `OAUTH_SERVER_URL` | Omit | The legacy managed OAuth callback is disabled in the production server. |
 | `OWNER_OPEN_ID` | Omit | Not required for local-account members. |
-| `BUILT_IN_FORGE_API_URL` | Omit | The old managed upload backend is intentionally unavailable. |
-| `BUILT_IN_FORGE_API_KEY` | Omit | The old managed upload backend is intentionally unavailable. |
+| `BUILT_IN_FORGE_API_URL` | Omit | No longer used after configuring the S3-compatible bucket. |
+| `BUILT_IN_FORGE_API_KEY` | Omit | No longer used after configuring the S3-compatible bucket. |
 
-Do **not** copy any managed-platform secret to the new host. Until an S3-compatible bucket is connected, avatar and post attachment uploads will show a storage-configuration error; local accounts and all MySQL-backed platform data continue to work.
+Do **not** copy any managed-platform secret to the new host. Until the five required S3 values are set, avatar and post attachment uploads will show a storage-configuration error; local accounts and all MySQL-backed platform data continue to work.
 
 ## 4. First database setup
 
@@ -51,9 +66,9 @@ pnpm db:push
 
 This creates the platform tables in the new MySQL database. New local-account registrations, posts, comments, friendships, chats, and moderation records will then be stored in this new database.
 
-## 5. Important storage note
+## 5. Upload verification
 
-The existing avatar and attachment uploader still uses managed object storage. The Node/MySQL deployment makes new database data independent, but direct image, video, and file uploads require a separate S3-compatible bucket before the migration is complete. Keep the current deployment live until that storage replacement is configured and tested.
+After setting the S3-compatible variables, register one throwaway local account, upload an avatar, then create a test post with one image or file. Confirm both the upload and subsequent download work before moving members to the external URL. Keep the database and object-storage backup procedures separate.
 
 ## 6. Backups
 
