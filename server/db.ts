@@ -277,6 +277,22 @@ export async function sendDirectMessage(userId: number, conversationId: number, 
   return Number(created[0].insertId);
 }
 
+export async function deleteDirectMessage(userId: number, messageId: number) {
+  const db = await requireDb();
+  const [message] = await db.select().from(directMessages).where(eq(directMessages.id, messageId)).limit(1);
+  if (!message) throw new Error("هذه الرسالة غير موجودة.");
+  if (message.senderId !== userId) throw new Error("لا يمكنك حذف رسالة كتبها عضو آخر.");
+  await db.delete(directMessages).where(and(eq(directMessages.id, messageId), eq(directMessages.senderId, userId)));
+  return { deleted: true as const };
+}
+
+export async function deleteDirectConversation(userId: number, conversationId: number) {
+  const db = await requireDb();
+  await requireConversationParticipant(userId, conversationId);
+  await db.delete(conversationParticipants).where(and(eq(conversationParticipants.userId, userId), eq(conversationParticipants.conversationId, conversationId)));
+  return { deleted: true as const };
+}
+
 export async function updateProfile(userId: number, data: { username?: string; avatarUrl?: string; bio?: string; country?: string; madhhabPreference?: string; profileVisibility?: "public" | "friends" }) {
   const db = await requireDb();
   await db.update(users).set({ ...data, updatedAt: new Date() }).where(eq(users.id, userId));
@@ -408,7 +424,7 @@ export async function createPost(userId: number, data: { title?: string; content
   const db = await requireDb();
   const [account] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
   if (!account || account.accountStatus === "banned") throw new Error("This account cannot publish posts.");
-  const hashtags = (data.content.match(/(^|\s)#[A-Za-z0-9_-]+/g) ?? [])
+  const hashtags = (data.content.match(/(^|\s)#[A-Za-z0-9_\-\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]+/g) ?? [])
     .map(tag => tag.trim())
     .join(" ") || null;
   if (data.communityId) await assertCommunityMembership(userId, data.communityId);
@@ -853,6 +869,12 @@ export async function listNotifications(userId: number) {
 export async function markNotificationRead(userId: number, notificationId: number) {
   const db = await requireDb();
   await db.update(notifications).set({ readAt: new Date() }).where(and(eq(notifications.id, notificationId), eq(notifications.recipientId, userId)));
+}
+
+export async function deleteNotification(userId: number, notificationId: number) {
+  const db = await requireDb();
+  await db.delete(notifications).where(and(eq(notifications.id, notificationId), eq(notifications.recipientId, userId)));
+  return { deleted: true as const };
 }
 
 export async function listOpenReports() {

@@ -40,4 +40,10 @@ describe("chat input safeguards", () => {
     expect(directMessageInputSchema.safeParse({ conversationId: 1, content: "", attachmentUrl: "https://media.example.org/answer.gif", attachmentKind: "gif" }).success).toBe(true);
     expect(directMessageInputSchema.safeParse({ conversationId: 1, content: "", attachmentUrl: "https://media.example.org/answer.gif" }).success).toBe(false);
   });
+
+  it("rejects zero or negative identifiers for member-controlled deletion", async () => {
+    const caller = chatRouter.createCaller(ctx);
+    await expect(caller.deleteMessage({ messageId: 0 })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    await expect(caller.deleteConversation({ conversationId: -1 })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
 });

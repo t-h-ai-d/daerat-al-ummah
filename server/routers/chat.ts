@@ -44,4 +44,22 @@ export const chatRouter = router({
         throw mapChatError(error);
       }
     }),
+  deleteMessage: protectedProcedure
+    .input(z.object({ messageId: z.number().int().positive() }))
+    .mutation(async ({ ctx, input }) => {
+      try {
+        return await db.deleteDirectMessage(ctx.user.id, input.messageId);
+      } catch (error) {
+        throw mapChatError(error);
+      }
+    }),
+  deleteConversation: protectedProcedure
+    .input(z.object({ conversationId: z.number().int().positive() }))
+    .mutation(async ({ ctx, input }) => {
+      try {
+        return await db.deleteDirectConversation(ctx.user.id, input.conversationId);
+      } catch (error) {
+        throw mapChatError(error);
+      }
+    }),
 });

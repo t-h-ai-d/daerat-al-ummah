@@ -18,12 +18,12 @@ export type ObjectStorageConfig = {
 };
 
 export function resolveObjectStorageConfig(env: NodeJS.ProcessEnv = process.env): ObjectStorageConfig {
-  const endpoint = env.S3_ENDPOINT?.trim();
+  const suppliedEndpoint = env.S3_ENDPOINT?.trim();
   const bucket = env.S3_BUCKET?.trim();
   const accessKeyId = env.S3_ACCESS_KEY_ID?.trim();
   const secretAccessKey = env.S3_SECRET_ACCESS_KEY?.trim();
   const missing = [
-    !endpoint && "S3_ENDPOINT",
+    !suppliedEndpoint && "S3_ENDPOINT",
     !bucket && "S3_BUCKET",
     !accessKeyId && "S3_ACCESS_KEY_ID",
     !secretAccessKey && "S3_SECRET_ACCESS_KEY",
@@ -33,8 +33,18 @@ export function resolveObjectStorageConfig(env: NodeJS.ProcessEnv = process.env)
     throw new Error(`Object storage is not configured. Missing: ${missing.join(", ")}`);
   }
 
+  const endpoint = /^(https?:)?\/\//i.test(suppliedEndpoint!) ? suppliedEndpoint! : `https://${suppliedEndpoint!}`;
+  let normalizedEndpoint: string;
+  try {
+    const parsedEndpoint = new URL(endpoint);
+    if (parsedEndpoint.protocol !== "https:" && parsedEndpoint.protocol !== "http:") throw new Error("unsupported protocol");
+    normalizedEndpoint = parsedEndpoint.toString().replace(/\/+$/, "");
+  } catch {
+    throw new Error("Object storage endpoint is not a valid HTTP URL.");
+  }
+
   return {
-    endpoint: endpoint!.replace(/\/+$/, ""),
+    endpoint: normalizedEndpoint,
     region: env.S3_REGION?.trim() || "auto",
     bucket: bucket!,
     accessKeyId: accessKeyId!,

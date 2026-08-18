@@ -1,5 +1,6 @@
 import EmojiPicker from "@/components/EmojiPicker";
 import PostComments from "@/components/PostComments";
+import AttachmentActions from "@/components/AttachmentActions";
 import PlatformShell from "@/components/PlatformShell";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -56,9 +57,9 @@ function CommunityBadge({ kind, visibility }: { kind: "community" | "group" | "s
 
 function AttachmentPreview({ attachment }: { attachment: Attachment }) {
   if (attachment.scanStatus && attachment.scanStatus !== "clean") return <div className="mt-4 flex items-center gap-3 rounded-xl border border-[#ead7a3] bg-[#fffaf0] p-3"><span className="grid h-9 w-9 place-items-center rounded-lg bg-[#f5e7c4] text-[#896c1f]"><LockKeyhole size={17} /></span><div className="min-w-0 flex-1"><p className="truncate text-xs font-bold text-[#6f5415]">{attachment.filename || "ملف مرفق"}</p><p className="mt-0.5 text-[11px] text-[#896c1f]">{attachment.scanStatus === "blocked" ? "حُظر هذا الملف بعد الفحص الأمني." : "ملف في الحجر الأمني بانتظار الفحص الخارجي."}</p></div><span className="rounded-full bg-[#f5e7c4] px-2.5 py-1 text-[10px] font-extrabold text-[#795c16]">{attachment.scanStatus === "blocked" ? "محظور" : "قيد الفحص"}</span></div>;
-  if (attachment.kind === "image" || attachment.kind === "gif") return <div className="relative mt-4"><img src={attachment.url} alt={attachment.filename || "مرفق منشور"} className={`max-h-96 w-full rounded-xl border border-[#e0e8de] ${attachment.kind === "gif" ? "object-contain bg-[#f7faf6]" : "object-cover"}`} /><span className="absolute right-3 top-3 rounded-full bg-[#163e33]/90 px-2.5 py-1 text-[10px] font-extrabold text-white">{attachment.kind === "gif" ? "صورة متحركة GIF" : "صورة"}</span></div>;
-  if (attachment.kind === "video") return <div className="relative mt-4"><video controls preload="metadata" className="max-h-96 w-full rounded-xl border border-[#e0e8de] bg-[#183b32]"><source src={attachment.url} type={attachment.mimeType || "video/mp4"} />لا يدعم متصفحك تشغيل هذا الفيديو.</video><span className="absolute right-3 top-3 rounded-full bg-[#163e33]/90 px-2.5 py-1 text-[10px] font-extrabold text-white">فيديو</span></div>;
-  return <a href={attachment.url} target="_blank" rel="noreferrer" className="mt-4 flex items-center gap-3 rounded-xl border border-[#e0e8de] bg-[#fafcf9] p-3 transition-colors hover:border-[#b9d0bd]"><span className="grid h-9 w-9 place-items-center rounded-lg bg-[#e1ebdf] text-[#2a6651]">{attachment.kind === "file" ? <FileText size={17} /> : <Link2 size={17} />}</span><div className="min-w-0 flex-1"><p className="truncate text-xs font-bold text-[#24483d]">{attachment.filename || (attachment.kind === "file" ? "ملف مرفق" : attachment.url.replace(/^https?:\/\//, ""))}</p><p className="mt-0.5 text-[11px] text-[#809488]">{attachment.kind === "file" ? "ملف مرفق · افتحه في علامة تبويب جديدة" : "رابط مرفق"}</p></div><ArrowUpRight size={16} className="text-[#5b8875]" /></a>;
+  if (attachment.kind === "image" || attachment.kind === "gif") return <div className="relative mt-4"><img src={attachment.url} alt={attachment.filename || "مرفق منشور"} className={`max-h-96 w-full rounded-xl border border-[#e0e8de] ${attachment.kind === "gif" ? "object-contain bg-[#f7faf6]" : "object-cover"}`} /><span className="absolute right-3 top-3 rounded-full bg-[#163e33]/90 px-2.5 py-1 text-[10px] font-extrabold text-white">{attachment.kind === "gif" ? "صورة متحركة GIF" : "صورة"}</span><AttachmentActions attachment={attachment} /></div>;
+  if (attachment.kind === "video") return <div className="relative mt-4"><video controls preload="metadata" className="max-h-96 w-full rounded-xl border border-[#e0e8de] bg-[#183b32]"><source src={attachment.url} type={attachment.mimeType || "video/mp4"} />لا يدعم متصفحك تشغيل هذا الفيديو.</video><span className="absolute right-3 top-3 rounded-full bg-[#163e33]/90 px-2.5 py-1 text-[10px] font-extrabold text-white">فيديو</span><AttachmentActions attachment={attachment} /></div>;
+  return <div className="mt-4 rounded-xl border border-[#e0e8de] bg-[#fafcf9] p-3"><a href={attachment.url} target="_blank" rel="noreferrer" className="flex items-center gap-3 transition-colors hover:text-[#176047]"><span className="grid h-9 w-9 place-items-center rounded-lg bg-[#e1ebdf] text-[#2a6651]">{attachment.kind === "file" ? <FileText size={17} /> : <Link2 size={17} />}</span><div className="min-w-0 flex-1"><p className="truncate text-xs font-bold text-[#24483d]">{attachment.filename || (attachment.kind === "file" ? "ملف مرفق" : attachment.url.replace(/^https?:\/\//, ""))}</p><p className="mt-0.5 text-[11px] text-[#809488]">{attachment.kind === "file" ? "ملف مرفق · افتحه في علامة تبويب جديدة" : "رابط مرفق"}</p></div><ArrowUpRight size={16} className="text-[#5b8875]" /></a><AttachmentActions attachment={attachment} /></div>;
 }
 
 function CommunityPostCard({ post, isAuthor, onReport, onDelete, onEdit, onSetVisibility }: { post: CommunityPost; isAuthor: boolean; onReport: () => void; onDelete: () => void; onEdit: () => void; onSetVisibility: (visibility: "public" | "friends") => void }) {
@@ -150,16 +151,18 @@ export function CommunityDetailPage() {
         const mimeType = file.type || "application/octet-stream";
         try {
           const prepared = await prepareAttachmentUpload.mutateAsync({ filename: file.name, mimeType, sizeBytes: file.size });
-          const response = await fetch(prepared.uploadUrl, { method: "PUT", headers: { "Content-Type": prepared.mimeType }, body: file });
+          const directUploadUrl = new URL(prepared.uploadUrl);
+          if (directUploadUrl.protocol !== "https:" && directUploadUrl.protocol !== "http:") throw new Error("تعذّر تجهيز رابط الرفع الآمن.");
+          const response = await fetch(directUploadUrl, { method: "PUT", headers: { "Content-Type": prepared.mimeType }, body: file });
           if (!response.ok) throw new Error("تعذّر رفع الملف إلى التخزين الآمن.");
           const { uploadUrl: _uploadUrl, sharedLimitBytes: _sharedLimitBytes, ...attachment } = prepared;
           setAttachments(current => [...current, attachment]);
           if (prepared.scanStatus === "pending") toast.message("رُفع الملف إلى الحجر الأمني؛ لن يُفتح أو يُنزّل قبل اكتمال الفحص الخارجي.");
         } catch {
-          if (file.size > SMALL_UPLOAD_FALLBACK_BYTES) throw new Error(`تعذّر رفع «${file.name}» مباشرةً. الملف أكبر من 50 ميغابايت، ويجب تفعيل CORS في Backblaze B2 للرفع المباشر.`);
+          if (file.size > SMALL_UPLOAD_FALLBACK_BYTES) throw new Error(`لم يكتمل رفع «${file.name}» بعد. احفظ المنشور أو جرّب ملفًا أصغر مؤقتًا؛ الرفع الكبير سيعود تلقائيًا عند اكتمال إعداد التخزين.`);
           const fallback = await uploadAttachment.mutateAsync({ filename: file.name, mimeType, dataBase64: await readFileAsBase64(file) });
           setAttachments(current => [...current, fallback]);
-          toast.message(`تم رفع «${file.name}» عبر المسار الاحتياطي؛ أصلح CORS في Backblaze للملفات الكبيرة.`);
+          toast.message(`أُضيف «${file.name}» عبر المسار الآمن البديل.`);
         }
       }
       toast.success(`تمت إضافة ${acceptedFiles.length} مرفق/مرفقات. يمكنك حذف أي واحد قبل النشر.`);

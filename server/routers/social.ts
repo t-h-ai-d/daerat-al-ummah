@@ -27,12 +27,15 @@ function isAudioOrVideoAttachment(attachment: z.infer<typeof attachmentSchema>) 
 
 export const createPostInputSchema = z.object({
   title: z.string().trim().max(240).optional(),
-  content: z.string().trim().min(1).max(5000),
+  content: z.string().trim().max(5000).default(""),
   textStyle: z.enum(["default", "serif", "emphasis"]).default("default"),
   visibility: z.enum(["public", "friends"]).default("public"),
   communityId: z.number().int().positive().optional(),
   attachments: z.array(attachmentSchema).default([]),
 }).superRefine((input, context) => {
+  if (!input.content && !input.attachments.length) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ["content"], message: "اكتب نصًّا، أو أضف مرفقًا واحدًا على الأقل." });
+  }
   if (input.attachments.filter(isAudioOrVideoAttachment).length > 1) {
     context.addIssue({ code: z.ZodIssueCode.custom, path: ["attachments"], message: "يُسمح بمرفق فيديو أو صوت واحد فقط في المنشور." });
   }
@@ -49,6 +52,25 @@ function attachmentKind(mimeType: string): "image" | "gif" | "video" | "file" {
 
 function safeFilename(filename: string) {
   return filename.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 120) || "upload";
+}
+
+async function useConfiguredStorage<T>(operation: () => Promise<T>) {
+  try {
+    return await operation();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+    console.error("[AttachmentStorage] operation failed", { message });
+    if (/invalid url|object storage|s3_endpoint|endpoint/i.test(message)) {
+      throw new TRPCError({
+        code: "PRECONDITION_FAILED",
+        message: "تعذّر تجهيز مساحة الملفات الآن. لم يُنشَر أي محتوى؛ أعد المحاولة بعد لحظة.",
+      });
+    }
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "تعذّر رفع الملف الآن. لم يُنشَر أي محتوى، ويمكنك المحاولة مجددًا.",
+    });
+  }
 }
 
 export const socialRouter = router({
@@ -131,6 +153,9 @@ export const socialRouter = router({
   markNotificationRead: protectedProcedure
     .input(z.object({ notificationId: z.number().int().positive() }))
     .mutation(({ ctx, input }) => db.markNotificationRead(ctx.user.id, input.notificationId)),
+  deleteNotification: protectedProcedure
+    .input(z.object({ notificationId: z.number().int().positive() }))
+    .mutation(({ ctx, input }) => db.deleteNotification(ctx.user.id, input.notificationId)),
   browserPushStatus: protectedProcedure.query(({ ctx }) => db.getBrowserPushSubscriptionStatus(ctx.user.id)),
   saveBrowserPushSubscription: protectedProcedure
     .input(z.object({ endpoint: z.string().url().max(4000), p256dh: z.string().min(16).max(255), auth: z.string().min(8).max(255), userAgent: z.string().max(512).optional() }))
@@ -147,7 +172,7 @@ export const socialRouter = router({
       const mimeType = input.mimeType || "application/octet-stream";
       const scanStatus = attachmentScanStatus(input.filename, mimeType);
       const prefix = requiresAttachmentQuarantine(input.filename, mimeType) ? "quarantine" : "posts";
-      const result = await storageCreatePresignedUpload(`${ctx.user.id}/${prefix}/${safeFilename(input.filename)}`, mimeType);
+      const result = await useConfiguredStorage(() => storageCreatePresignedUpload(`${ctx.user.id}/${prefix}/${safeFilename(input.filename)}`, mimeType));
       return {
         ...result,
         filename: input.filename,
@@ -173,7 +198,7 @@ export const socialRouter = router({
       if (!bytes.length || bytes.length > MAX_BASE64_ATTACHMENT_BYTES) throw new TRPCError({ code: "PAYLOAD_TOO_LARGE", message: "الرفع القديم عبر Base64 محدود بـ50 ميغابايت؛ استخدم الرفع المباشر للملفات الأكبر." });
       const scanStatus = attachmentScanStatus(input.filename, input.mimeType);
       const prefix = requiresAttachmentQuarantine(input.filename, input.mimeType) ? "quarantine" : "posts";
-      const result = await storagePut(`${ctx.user.id}/${prefix}/${safeFilename(input.filename)}`, bytes, input.mimeType);
+      const result = await useConfiguredStorage(() => storagePut(`${ctx.user.id}/${prefix}/${safeFilename(input.filename)}`, bytes, input.mimeType));
       return { ...result, filename: input.filename, mimeType: input.mimeType, sizeBytes: bytes.length, kind: attachmentKind(input.mimeType), scanStatus };
     }),
   uploadAvatar: protectedProcedure
@@ -181,6 +206,6 @@ export const socialRouter = router({
     .mutation(async ({ ctx, input }) => {
       const bytes = Buffer.from(input.dataBase64, "base64");
       if (!bytes.length || bytes.length > 6_000_000) throw new TRPCError({ code: "PAYLOAD_TOO_LARGE", message: "Profile images must be 6 MB or smaller." });
-      return storagePut(`${ctx.user.id}/avatar/${Date.now()}-${safeFilename(input.filename)}`, bytes, input.mimeType);
+      return useConfiguredStorage(() => storagePut(`${ctx.user.id}/avatar/${Date.now()}-${safeFilename(input.filename)}`, bytes, input.mimeType));
     }),
 });

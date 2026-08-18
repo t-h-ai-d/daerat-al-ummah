@@ -23,6 +23,15 @@ describe("user-owned object-storage configuration", () => {
     expect(() => resolveObjectStorageConfig({})).toThrow("Object storage is not configured");
   });
 
+  it("normalizes a Backblaze endpoint when its protocol was omitted", () => {
+    expect(resolveObjectStorageConfig({
+      S3_ENDPOINT: "s3.us-east-005.backblazeb2.com/",
+      S3_BUCKET: "daerat-media",
+      S3_ACCESS_KEY_ID: "key-id",
+      S3_SECRET_ACCESS_KEY: "secret",
+    }).endpoint).toBe("https://s3.us-east-005.backblazeb2.com");
+  });
+
   it("stores uploads through the private R2 binding when running as a Worker", async () => {
     const put = vi.fn().mockResolvedValue(undefined);
     configureCloudflareRuntime({

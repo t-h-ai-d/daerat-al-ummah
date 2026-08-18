@@ -190,9 +190,16 @@
 - [x] Add a server-side external-scanner activation path and document its credential, privacy, and 650 MB scanner-limit constraints.
 - [x] Validate the supplied VirusTotal private-scanning credential and activate verdict updates for quarantined attachments.
 - [ ] Remove the leaked private scanner credential from all repository files and rotate it before publishing scanner code.
-- [ ] Add safe Arabic image and video viewers plus controlled attachment download, share, and repost actions that honor quarantine status.
-- [ ] Add participant-controlled conversation deletion and sender-controlled message deletion with strict server-side authorization.
+- [x] Add safe Arabic image and video viewers plus controlled attachment download, share, and repost actions that honor quarantine status.
+- [x] Add participant-controlled conversation deletion and sender-controlled message deletion with strict server-side authorization.
 - [ ] Capture and fix the current live Backblaze attachment-upload error for image, video, and general file uploads before any further media features.
 - [ ] Let members select multiple attachments, remove any selected file before publishing, and permit only one combined video or audio attachment per post.
+- [x] Enhance in-app notifications with clear Arabic event labels, unread state, and direct links to the relevant conversation, request, or post.
 - [x] Repair friendship-request visibility and acceptance actions so requested members can see and respond to incoming requests.
 - [x] Replace the profile avatar URL-only field with secure direct image upload and preview controls.
+- [x] Replace all raw attachment and malformed-link errors with clear Arabic recovery messages; never expose «Invalid URL» to members.
+- [x] Redesign the main Arabic composer so members explicitly choose text-only, video-only, file-only, images-only, or any allowed post-plus-attachment combination.
+- [x] Preserve and present Arabic harakāt and shaddah in all new composer, notification, and studio labels.
+- [ ] Restore member-created tags/hashtags in posts with Arabic RTL display and discovery support.
+- [x] Add member-authorized deletion controls for their own direct messages, their own conversations, and their own in-app notifications.
+- [x] Build a member-facing «استوديو المُنشِئ» page for drafts, post-format selection, and direct access to publishing tools.
