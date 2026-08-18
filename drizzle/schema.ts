@@ -339,6 +339,29 @@ export const notifications = mysqlTable(
   table => [index("notifications_recipient_created_idx").on(table.recipientId, table.createdAt)],
 );
 
+/**
+ * Per-browser, opt-in Web Push delivery endpoints. The endpoint hash prevents
+ * a duplicate device registration without trying to index a long URL directly.
+ */
+export const browserPushSubscriptions = mysqlTable(
+  "browserPushSubscriptions",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
+    endpointHash: varchar("endpointHash", { length: 64 }).notNull(),
+    endpoint: text("endpoint").notNull(),
+    p256dh: varchar("p256dh", { length: 255 }).notNull(),
+    auth: varchar("auth", { length: 255 }).notNull(),
+    userAgent: varchar("userAgent", { length: 512 }),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => [
+    uniqueIndex("push_subscription_endpoint_unique").on(table.endpointHash),
+    index("push_subscription_user_idx").on(table.userId, table.createdAt),
+  ],
+);
+
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 export type Post = typeof posts.$inferSelect;

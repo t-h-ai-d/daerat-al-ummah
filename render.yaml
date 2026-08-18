@@ -23,6 +23,12 @@ services:
         sync: false
       - key: RESEND_FROM_EMAIL
         sync: false
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: VAPID_SUBJECT
+        value: "mailto:ssbmbwuugame@gmail.com"
       - key: S3_ENDPOINT
         sync: false
       - key: S3_REGION

@@ -90,6 +90,9 @@ export const socialRouter = router({
   addComment: protectedProcedure
     .input(z.object({ postId: z.number().int().positive(), content: z.string().trim().min(1).max(1800) }))
     .mutation(({ ctx, input }) => db.addComment(ctx.user.id, input.postId, input.content)),
+  postComments: publicProcedure
+    .input(z.object({ postId: z.number().int().positive() }))
+    .query(({ ctx, input }) => db.listPostComments(ctx.user?.id, input.postId)),
   search: publicProcedure
     .input(z.object({ query: z.string().trim().min(1).max(100) }))
     .query(({ ctx, input }) => db.searchCircle(input.query, ctx.user?.id)),
@@ -97,6 +100,13 @@ export const socialRouter = router({
   markNotificationRead: protectedProcedure
     .input(z.object({ notificationId: z.number().int().positive() }))
     .mutation(({ ctx, input }) => db.markNotificationRead(ctx.user.id, input.notificationId)),
+  browserPushStatus: protectedProcedure.query(({ ctx }) => db.getBrowserPushSubscriptionStatus(ctx.user.id)),
+  saveBrowserPushSubscription: protectedProcedure
+    .input(z.object({ endpoint: z.string().url().max(4000), p256dh: z.string().min(16).max(255), auth: z.string().min(8).max(255), userAgent: z.string().max(512).optional() }))
+    .mutation(({ ctx, input }) => db.saveBrowserPushSubscription(ctx.user.id, input)),
+  removeBrowserPushSubscription: protectedProcedure
+    .input(z.object({ endpoint: z.string().url().max(4000).optional() }))
+    .mutation(({ ctx, input }) => db.removeBrowserPushSubscription(ctx.user.id, input.endpoint)),
   updateProfile: protectedProcedure
     .input(z.object({ username: z.string().trim().min(3).max(32).regex(/^[a-zA-Z0-9_\u0600-\u06FF]+$/).optional(), avatarUrl: z.string().trim().max(2000).optional(), bio: z.string().trim().max(500).optional(), country: z.string().trim().max(96).optional(), madhhabPreference: z.string().trim().max(48).optional(), profileVisibility: z.enum(["public", "friends"]).optional() }))
     .mutation(({ ctx, input }) => db.updateProfile(ctx.user.id, input)),

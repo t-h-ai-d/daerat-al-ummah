@@ -1,4 +1,5 @@
 import {
+  asc,
   and,
   desc,
   eq,
@@ -10,9 +11,12 @@ import {
 } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { createConnection } from "mysql2/promise";
+import { createHash } from "node:crypto";
+import webpush from "web-push";
 import {
   comments,
   aiModerationChecks,
+  browserPushSubscriptions,
   communities,
   communityMembers,
   conversationParticipants,
@@ -266,6 +270,8 @@ export async function sendDirectMessage(userId: number, conversationId: number, 
   const db = await requireDb();
   await requireConversationParticipant(userId, conversationId);
   const created = await db.insert(directMessages).values({ conversationId, senderId: userId, content, attachmentUrl: attachment?.url ?? null, attachmentKind: attachment?.kind ?? null });
+  const recipients = await db.select({ userId: conversationParticipants.userId }).from(conversationParticipants).where(and(eq(conversationParticipants.conversationId, conversationId), ne(conversationParticipants.userId, userId)));
+  await Promise.all(recipients.map(recipient => deliverBrowserPush(recipient.userId, { title: "رسالة خاصة جديدة", body: "لديك رسالة جديدة في دائرة الأمة.", url: "/chat", tag: `message-${conversationId}` })));
   await notifyMentions(userId, content, {});
   return Number(created[0].insertId);
 }
@@ -488,10 +494,11 @@ export async function getFriendIds(userId: number) {
   return new Set(links.map(link => link.requesterId === userId ? link.recipientId : link.requesterId));
 }
 
-async function assertCanAccessPost(viewerId: number, post: typeof posts.$inferSelect) {
+async function assertCanAccessPost(viewerId: number | undefined, post: typeof posts.$inferSelect) {
   if (post.visibility === "public" || post.authorId === viewerId) return;
+  if (!viewerId) throw new Error("هذا المنشور مخصص للأصدقاء فقط.");
   const friendIds = await getFriendIds(viewerId);
-  if (!friendIds.has(post.authorId)) throw new Error("This post is limited to friends.");
+  if (!friendIds.has(post.authorId)) throw new Error("هذا المنشور مخصص للأصدقاء فقط.");
 }
 
 export function interleaveFeedAuthors<T extends { post: { authorId: number } }>(rows: T[]) {
@@ -600,13 +607,61 @@ async function notify(data: { recipientId: number; actorId?: number; postId?: nu
   await db.insert(notifications).values(data);
 }
 
+export function getBrowserPushStatus() {
+  return { available: Boolean(ENV.vapidPublicKey && ENV.vapidPrivateKey), publicKey: ENV.vapidPublicKey || undefined };
+}
+
+export async function getBrowserPushSubscriptionStatus(userId: number) {
+  const db = await requireDb();
+  const rows = await db.select({ id: browserPushSubscriptions.id }).from(browserPushSubscriptions).where(eq(browserPushSubscriptions.userId, userId)).limit(1);
+  return { ...getBrowserPushStatus(), subscribed: Boolean(rows[0]) };
+}
+
+export async function saveBrowserPushSubscription(userId: number, subscription: { endpoint: string; p256dh: string; auth: string; userAgent?: string }) {
+  const db = await requireDb();
+  const endpointHash = createHash("sha256").update(subscription.endpoint).digest("hex");
+  await db.insert(browserPushSubscriptions).values({ userId, endpointHash, endpoint: subscription.endpoint, p256dh: subscription.p256dh, auth: subscription.auth, userAgent: subscription.userAgent || null }).onDuplicateKeyUpdate({ set: { userId, endpoint: subscription.endpoint, p256dh: subscription.p256dh, auth: subscription.auth, userAgent: subscription.userAgent || null, updatedAt: new Date() } });
+  return { saved: true as const };
+}
+
+export async function removeBrowserPushSubscription(userId: number, endpoint?: string) {
+  const db = await requireDb();
+  if (endpoint) {
+    const endpointHash = createHash("sha256").update(endpoint).digest("hex");
+    await db.delete(browserPushSubscriptions).where(and(eq(browserPushSubscriptions.userId, userId), eq(browserPushSubscriptions.endpointHash, endpointHash)));
+  } else {
+    await db.delete(browserPushSubscriptions).where(eq(browserPushSubscriptions.userId, userId));
+  }
+  return { removed: true as const };
+}
+
+async function deliverBrowserPush(recipientId: number, payload: { title: string; body: string; url: string; tag: string }) {
+  if (!ENV.vapidPublicKey || !ENV.vapidPrivateKey) return;
+  const db = await requireDb();
+  const subscriptions = await db.select().from(browserPushSubscriptions).where(eq(browserPushSubscriptions.userId, recipientId));
+  if (!subscriptions.length) return;
+  webpush.setVapidDetails(ENV.vapidSubject, ENV.vapidPublicKey, ENV.vapidPrivateKey);
+  await Promise.all(subscriptions.map(async subscription => {
+    try {
+      await webpush.sendNotification({ endpoint: subscription.endpoint, keys: { p256dh: subscription.p256dh, auth: subscription.auth } }, JSON.stringify(payload), { TTL: 300, urgency: "normal" });
+    } catch (error) {
+      const statusCode = (error as { statusCode?: number }).statusCode;
+      if (statusCode === 404 || statusCode === 410) await db.delete(browserPushSubscriptions).where(eq(browserPushSubscriptions.id, subscription.id));
+      else console.warn("[Browser push] Delivery failed", error);
+    }
+  }));
+}
+
 async function notifyMentions(actorId: number, content: string, reference: { postId?: number; commentId?: number }) {
   const matches = content.match(/(^|\s)@([^\s@]{3,32})/g) ?? [];
   const usernames = matches.map(match => match.trim().slice(1)).filter(Boolean);
   if (!usernames.length) return;
   const db = await requireDb();
   const mentioned = await db.select({ id: users.id }).from(users).where(inArray(users.username, usernames));
-  await Promise.all(mentioned.map(person => notify({ recipientId: person.id, actorId, ...reference, type: "mention", message: reference.commentId ? "ذكرك في رد" : reference.postId ? "ذكرك في منشور" : "ذكرك في رسالة خاصة" })));
+  await Promise.all(mentioned.map(async person => {
+    await notify({ recipientId: person.id, actorId, ...reference, type: "mention", message: reference.commentId ? "ذكرك في رد" : reference.postId ? "ذكرك في منشور" : "ذكرك في رسالة خاصة" });
+    await deliverBrowserPush(person.id, { title: "إشارة جديدة في دائرة الأمة", body: "تمت الإشارة إليك في محتوى جديد.", url: reference.postId ? "/" : "/chat", tag: `mention-${person.id}-${reference.postId ?? "message"}` });
+  }));
 }
 
 export async function toggleFollow(actorId: number, targetId: number) {
@@ -618,7 +673,7 @@ export async function toggleFollow(actorId: number, targetId: number) {
     return { following: false };
   }
   await db.insert(follows).values({ followerId: actorId, followingId: targetId });
-  await notify({ recipientId: targetId, actorId, type: "follow", message: "started following you" });
+  await notify({ recipientId: targetId, actorId, type: "follow", message: "بدأ بمتابعتك" });
   return { following: true };
 }
 
@@ -649,6 +704,7 @@ export async function requestFriendship(requesterId: number, recipientId: number
     return { status: "pending" as const, friendshipId: existing.id };
   }
   const created = await db.insert(friendships).values({ requesterId, recipientId, status: "pending" });
+  await deliverBrowserPush(recipientId, { title: "طلب صداقة جديد", body: "لديك طلب صداقة جديد في دائرة الأمة.", url: "/profile", tag: `friendship-${recipientId}` });
   return { status: "pending" as const, friendshipId: Number(created[0].insertId) };
 }
 
@@ -674,7 +730,7 @@ export async function toggleLike(userId: number, postId: number) {
   const post = await findPost(postId);
   await assertCanAccessPost(userId, post);
   await db.insert(likes).values({ userId, postId });
-  await notify({ recipientId: post.authorId, actorId: userId, postId, type: "like", message: "liked your post" });
+  await notify({ recipientId: post.authorId, actorId: userId, postId, type: "like", message: "أعجب بمنشورك" });
   return { liked: true };
 }
 
@@ -684,7 +740,7 @@ export async function toggleRepost(userId: number, postId: number) {
   const post = await findPost(postId);
   await assertCanAccessPost(userId, post);
   await db.insert(reposts).values({ userId, postId });
-  await notify({ recipientId: post.authorId, actorId: userId, postId, type: "repost", message: "reposted your post" });
+  await notify({ recipientId: post.authorId, actorId: userId, postId, type: "repost", message: "أعاد نشر منشورك" });
   return { reposted: true };
 }
 
@@ -692,11 +748,41 @@ export async function addComment(userId: number, postId: number, content: string
   const db = await requireDb();
   const post = await findPost(postId);
   await assertCanAccessPost(userId, post);
+  if (post.communityId) await assertCommunityMembership(userId, post.communityId);
   const [created] = await db.insert(comments).values({ authorId: userId, postId, content });
   const commentId = Number(created.insertId);
-  await notify({ recipientId: post.authorId, actorId: userId, postId, commentId, type: "comment", message: "commented on your post" });
+  await notify({ recipientId: post.authorId, actorId: userId, postId, commentId, type: "comment", message: "كتب تعليقًا على منشورك" });
+  await deliverBrowserPush(post.authorId, { title: "رد جديد على منشورك", body: "كتب أحد الأعضاء ردًا على منشورك.", url: "/", tag: `reply-${postId}` });
   await notifyMentions(userId, content, { postId, commentId });
   return commentId;
+}
+
+export async function listPostComments(viewerId: number | undefined, postId: number) {
+  const db = await requireDb();
+  const post = await findPost(postId);
+  await assertCanAccessPost(viewerId, post);
+  if (post.communityId) await assertCommunityAccess(viewerId, post.communityId);
+  const rows = await db
+    .select({
+      id: comments.id,
+      content: comments.content,
+      createdAt: comments.createdAt,
+      authorId: users.id,
+      authorName: users.name,
+      authorUsername: users.username,
+      authorAvatarUrl: users.avatarUrl,
+    })
+    .from(comments)
+    .innerJoin(users, eq(comments.authorId, users.id))
+    .where(eq(comments.postId, postId))
+    .orderBy(asc(comments.createdAt))
+    .limit(100);
+  return rows.map(row => ({
+    id: row.id,
+    content: row.content,
+    createdAt: row.createdAt,
+    author: { id: row.authorId, name: row.authorName, username: row.authorUsername, avatarUrl: row.authorAvatarUrl },
+  }));
 }
 
 export async function createReport(reporterId: number, postId: number, category: "scam" | "lie" | "brainrot" | "haram imagery", details?: string) {

@@ -10,4 +10,7 @@ export const ENV = {
   get isProduction() { return getRuntimeEnv().NODE_ENV === "production"; },
   get forgeApiUrl() { return getRuntimeEnv().BUILT_IN_FORGE_API_URL ?? ""; },
   get forgeApiKey() { return getRuntimeEnv().BUILT_IN_FORGE_API_KEY ?? ""; },
+  get vapidPublicKey() { return getRuntimeEnv().VAPID_PUBLIC_KEY ?? ""; },
+  get vapidPrivateKey() { return getRuntimeEnv().VAPID_PRIVATE_KEY ?? ""; },
+  get vapidSubject() { return getRuntimeEnv().VAPID_SUBJECT ?? "mailto:ssbmbwuugame@gmail.com"; },
 };

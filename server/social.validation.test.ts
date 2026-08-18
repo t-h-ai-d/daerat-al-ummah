@@ -40,6 +40,32 @@ describe("social input safeguards", () => {
     expect("social.submitReport" in socialProcedures).toBe(true);
   });
 
+  it("exposes only the opt-in browser-push subscription controls", () => {
+    const socialProcedures = appRouter._def.procedures;
+    expect("social.browserPushStatus" in socialProcedures).toBe(true);
+    expect("social.saveBrowserPushSubscription" in socialProcedures).toBe(true);
+    expect("social.removeBrowserPushSubscription" in socialProcedures).toBe(true);
+    expect("social.sendBrowserPush" in socialProcedures).toBe(false);
+  });
+
+  it("rejects malformed browser-push subscriptions before saving a device endpoint", async () => {
+    const caller = appRouter.createCaller(createAuthenticatedContext());
+    await expect(caller.social.saveBrowserPushSubscription({ endpoint: "not-a-url", p256dh: "too-short", auth: "bad" })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    await expect(caller.social.removeBrowserPushSubscription({ endpoint: "not-a-url" })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+
+  it("exposes a visible post-comment query and validates its post identifier", async () => {
+    const socialProcedures = appRouter._def.procedures;
+    expect("social.postComments" in socialProcedures).toBe(true);
+    const caller = appRouter.createCaller(createAuthenticatedContext());
+    await expect(caller.social.postComments({ postId: 0 })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+
+  it("rejects an empty visible-thread comment before writing to the database", async () => {
+    const caller = appRouter.createCaller(createAuthenticatedContext());
+    await expect(caller.social.addComment({ postId: 1, content: "" })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+
   it("accepts only the four report categories used by the backend report form", () => {
     expect(reportCategorySchema.safeParse("scam").success).toBe(true);
     expect(reportCategorySchema.safeParse("lie").success).toBe(true);

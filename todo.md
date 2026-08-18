@@ -134,7 +134,7 @@
 - [x] Replace browser mailto reporting with a three-dot in-app report form that submits to the backend and delivers the report to the owner email.
 - [x] Prioritize backend-delivered three-dot reporting before post options, upload follow-up, or browser-notification work.
 - [x] Configure a server-only email delivery provider for independent Render deployment, without exposing its credential to members.
-- [ ] Add explicit opt-in browser notification enrollment, preference controls, and a respectful delivery policy for direct messages, friendships, mentions, and replies.
+- [x] Add explicit opt-in browser notification enrollment, preference controls, and a respectful delivery policy for direct messages, friendships, mentions, and replies.
 - [x] Add and run safeguards for backend report submission and author-only post updates.
 - [x] Bring community post cards to parity with the home three-dot menu and in-app report flow.
 - [x] Update the Arabic privacy policy and terms to describe in-app server-delivered reports rather than browser mail links.
@@ -143,3 +143,12 @@
 - [x] Remove the remaining mailto report link from the member-facing rules page and describe the in-app server-delivered report flow.
 - [x] Replace the community attachment upload fallback with explicit Arabic error feedback.
 - [ ] Verify the community three-dot menu, author controls, and report form against a real rendered community post.
+- [x] Show expandable Arabic comment threads beneath home-feed posts, with a clear reply composer for signed-in members.
+- [x] Show the same expandable Arabic comment threads beneath community posts rather than only a comment count.
+- [ ] Add safeguards for post-comment retrieval and comment creation, then visually verify the empty and populated thread states.
+- [x] Audit the requested member features—local authentication, posts, friendships, messages, mentions, comments, uploads, communities, emoji/GIF, reports, Arabic RTL, finite feeds, and account controls—and repair any remaining member-facing gaps before release.
+- [x] Replace remaining English member-interface copy in discovery and notifications with Arabic RTL copy, without altering member-written content.
+- [x] Add a browser-push subscription data model and authenticated server procedures that never expose notification credentials to members.
+- [x] Add an opt-in Arabic browser-notification control with clear permission, enabled, denied, and unsupported-browser states.
+- [x] Deliver browser notifications only for direct messages, friendship requests, mentions, and replies, respecting the member’s enabled preference.
+- [x] Document the Render VAPID environment variables and the one-command key-generation step required to activate browser notifications in production.

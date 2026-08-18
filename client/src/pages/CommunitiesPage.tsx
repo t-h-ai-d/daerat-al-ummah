@@ -1,4 +1,5 @@
 import EmojiPicker from "@/components/EmojiPicker";
+import PostComments from "@/components/PostComments";
 import PlatformShell from "@/components/PlatformShell";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -52,7 +53,7 @@ function CommunityPostCard({ post, isAuthor, onReport, onDelete, onEdit, onSetVi
     {post.title && <h3 className="mt-4 font-display text-lg font-semibold text-[#244c3e]">{post.title}</h3>}
     <p dir="auto" className="mt-3 whitespace-pre-wrap text-sm leading-7 text-[#3e5c50]">{post.content}</p>
     {post.attachments.map((attachment, index) => <AttachmentPreview key={attachment.id ?? `${attachment.url}-${index}`} attachment={attachment} />)}
-    <p className="mt-4 border-t border-[#edf2eb] pt-3 text-xs text-[#84978c]">{post.likeCount} إعجاب · {post.commentCount} تعليق · {post.repostCount} مشاركة</p>
+    <div className="mt-4 flex items-center justify-between gap-2 border-t border-[#edf2eb] pt-3"><PostComments postId={post.id} commentCount={post.commentCount} /><p className="text-xs text-[#84978c]">{post.likeCount} إعجاب · {post.repostCount} مشاركة</p></div>
   </article>;
 }
 

@@ -15,10 +15,10 @@ import { useLocation } from "wouter";
 type PageKind = "explore" | "notifications" | "rules" | "profile";
 
 const rules = [
-  ["Truth is a trust", "Do not knowingly share lies, misleading claims, impersonation, or manipulated material. If you are uncertain, say so and seek reliable sources."],
-  ["No scams or exploitation", "Do not solicit money, credentials, private details, or engagement through deception, pressure, or false promises."],
-  ["No brainrot", "Avoid empty outrage, compulsive-scroll bait, degrading trends, and content designed to drain attention without benefit."],
-  ["Respect the sacred", "Do not post haram imagery or content that mocks faith, people, or Islamic practices. Disagree with adab and without sectarian bias."],
+  ["الصدق أمانة", "لا تنشر عمدًا كذبًا أو ادعاءً مضلّلًا أو انتحالًا أو مادةً محرّفة. وإن لم تكن متيقنًا فقل ذلك وارجع إلى المصادر الموثوقة."],
+  ["لا للاحتيال أو الاستغلال", "لا تطلب مالًا أو بيانات دخول أو خصوصيات أو تفاعلًا بالخداع أو الضغط أو الوعود الكاذبة."],
+  ["لا للمحتوى المُفسد للعقل", "تجنّب الغضب الفارغ وطُعوم التمرير القهري والصيحات المُهينة والمحتوى المصمَّم لاستنزاف الانتباه بلا فائدة."],
+  ["احترام المقدسات", "لا تنشر صورًا محرّمة أو محتوى يسخر من الدين أو الناس أو الشعائر الإسلامية. واختلف بأدب من غير تحزّب أو تنابز."],
   ["احمِ الدائرة", "إذا رأيت محتوى مؤذيًا، افتح قائمة النقاط الثلاث في المنشور واختر الإبلاغ. اختر الفئة الأدق وأرسل التفاصيل الضرورية فقط؛ لا يفتح ذلك بريدك الشخصي."],
 ];
 
@@ -31,15 +31,80 @@ function Explore() {
   const [submitted, setSubmitted] = useState("");
   const utils = trpc.useUtils();
   const results = trpc.social.search.useQuery({ query: submitted || "_" }, { enabled: Boolean(submitted) });
-  const follow = trpc.social.toggleFollow.useMutation({ onSuccess: () => { utils.social.search.invalidate(); toast.success("Your following list has been updated."); }, onError: error => toast.error(error.message) });
+  const follow = trpc.social.toggleFollow.useMutation({ onSuccess: () => { utils.social.search.invalidate(); toast.success("تم تحديث قائمة متابعاتك."); }, onError: error => toast.error(error.message) });
   const { isAuthenticated } = useAuth();
   const search = (event: React.FormEvent) => { event.preventDefault(); setSubmitted(query.trim()); };
   const followPerson = (targetUserId: number) => { if (!isAuthenticated) { toast.info("سجّل الدخول لمتابعة الأعضاء."); window.location.href = "/auth"; return; } follow.mutate({ targetUserId }); };
-  return <div className="max-w-4xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10"><PageIntro eyebrow="Discover with intention" title="Explore the circle" body="Find people and useful conversations by name, keyword, or hashtag. Search is designed for depth, not endless recommendations." /><form onSubmit={search} className="relative"><Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#799184]" size={18} /><Input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search people, posts, or #topics" className="h-13 rounded-2xl border-[#d8e2d7] bg-white pl-11 text-sm shadow-sm" /></form><div className="mt-6"><p className="text-xs font-bold uppercase tracking-[0.14em] text-[#7b9287]">Try a topic</p><div className="mt-3 flex flex-wrap gap-2">{["#seekknowledge", "#mindfulmedia", "#service", "#quranreflection", "#goodcharacter"].map(topic => <button onClick={() => { setQuery(topic); setSubmitted(topic); }} key={topic} className="rounded-full border border-[#dce6dc] bg-white px-3.5 py-2 text-xs font-bold text-[#346653] transition-colors hover:border-[#a9c6b2] hover:bg-[#ecf4ed]">{topic}</button>)}</div></div>{results.isFetching && <div className="mt-7 flex items-center gap-2 text-sm text-[#6a8377]"><Loader2 className="animate-spin" size={17} />Searching the circle…</div>}{submitted && !results.isFetching && <div className="mt-8 space-y-5"><div><p className="text-xs font-bold uppercase tracking-[0.14em] text-[#7b9287]">People</p><div className="mt-3 space-y-3">{results.data?.people?.length ? results.data.people.map(person => <div key={person.id} className="flex items-start justify-between gap-4 rounded-[20px] border border-[#dce5da] bg-white p-4"><div className="flex min-w-0 gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-[14px] bg-[#e5efe5] text-xs font-extrabold text-[#176047]">{(person.name || person.username || "UC").split(" ").map(part => part[0]).join("").slice(0, 2)}</span><div className="min-w-0"><p className="truncate text-sm font-extrabold text-[#264a3e]">{person.name || person.username || "Circle member"}</p>{person.username && <p className="mt-0.5 text-xs text-[#82968b]">@{person.username}</p>}{person.bio && <p className="mt-2 text-xs leading-5 text-[#6b8378]">{person.bio}</p>}{(person.country || person.madhhabPreference) && <p className="mt-2 text-[11px] font-semibold text-[#8a9c92]">{[person.country, person.madhhabPreference].filter(Boolean).join(" · ")}</p>}</div></div><Button onClick={() => followPerson(person.id)} disabled={follow.isPending} className="shrink-0 rounded-xl bg-[#0d4937] text-xs hover:bg-[#176047]"><UserPlus size={15} />Follow</Button></div>) : <p className="rounded-xl border border-dashed border-[#d4dfd4] px-4 py-5 text-sm text-[#778d82]">No people matched this search yet.</p>}</div></div><div><p className="text-xs font-bold uppercase tracking-[0.14em] text-[#7b9287]">Posts</p><div className="mt-3 space-y-3">{results.data?.posts?.length ? results.data.posts.map(post => <div key={post.id} className="rounded-[20px] border border-[#dce5da] bg-white p-4"><div className="flex items-center gap-2"><span className="grid h-7 w-7 place-items-center rounded-lg bg-[#e5efe5] text-[#21684b]"><UsersRound size={14} /></span><p className="text-xs font-bold text-[#46685a]">{post.authorName || post.authorUsername || "Circle member"}</p></div><p className="mt-3 text-sm leading-6 text-[#3c5d50]">{post.content}</p>{post.hashtags && <p className="mt-3 text-xs font-bold text-[#34735a]">{post.hashtags}</p>}</div>) : <p className="rounded-xl border border-dashed border-[#d4dfd4] px-4 py-5 text-sm text-[#778d82]">No posts matched this search yet.</p>}</div></div></div>}</div>;
+  return <div dir="rtl" className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
+    <PageIntro eyebrow="اكتشف بوعي" title="استكشف الدائرة" body="ابحث عن الأعضاء والحوارات النافعة بالاسم أو الكلمة أو الوسم. صُمّم البحث للعمق لا للتوصيات التي لا تنتهي." />
+    <form onSubmit={search} className="relative"><Search className="absolute right-4 top-1/2 -translate-y-1/2 text-[#799184]" size={18} /><Input value={query} onChange={event => setQuery(event.target.value)} placeholder="ابحث عن أشخاص أو منشورات أو #مواضيع" className="h-13 rounded-2xl border-[#d8e2d7] bg-white pr-11 text-sm shadow-sm" /></form>
+    <div className="mt-6"><p className="text-xs font-bold tracking-[0.14em] text-[#7b9287]">جرّب موضوعًا</p><div className="mt-3 flex flex-wrap gap-2">{["#seekknowledge", "#mindfulmedia", "#service", "#quranreflection", "#goodcharacter"].map(topic => <button type="button" onClick={() => { setQuery(topic); setSubmitted(topic); }} key={topic} className="rounded-full border border-[#dce6dc] bg-white px-3.5 py-2 text-xs font-bold text-[#346653] transition-colors hover:border-[#a9c6b2] hover:bg-[#ecf4ed]">{topic}</button>)}</div></div>
+    {results.isFetching && <div className="mt-7 flex items-center gap-2 text-sm text-[#6a8377]"><Loader2 className="animate-spin" size={17} />يجري البحث في الدائرة…</div>}
+    {submitted && !results.isFetching && <div className="mt-8 space-y-5">
+      <section><p className="text-xs font-bold tracking-[0.14em] text-[#7b9287]">الأعضاء</p><div className="mt-3 space-y-3">{results.data?.people?.length ? results.data.people.map(person => <div key={person.id} className="flex items-start justify-between gap-4 rounded-[20px] border border-[#dce5da] bg-white p-4"><div className="flex min-w-0 gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-[14px] bg-[#e5efe5] text-xs font-extrabold text-[#176047]">{(person.name || person.username || "د").split(" ").map(part => part[0]).join("").slice(0, 2)}</span><div className="min-w-0"><p className="truncate text-sm font-extrabold text-[#264a3e]">{person.name || person.username || "عضو في الدائرة"}</p>{person.username && <p className="mt-0.5 text-xs text-[#82968b]">@{person.username}</p>}{person.bio && <p className="mt-2 text-xs leading-5 text-[#6b8378]">{person.bio}</p>}{(person.country || person.madhhabPreference) && <p className="mt-2 text-[11px] font-semibold text-[#8a9c92]">{[person.country, person.madhhabPreference].filter(Boolean).join(" · ")}</p>}</div></div><Button onClick={() => followPerson(person.id)} disabled={follow.isPending} className="shrink-0 rounded-xl bg-[#0d4937] text-xs hover:bg-[#176047]"><UserPlus size={15} />تابع</Button></div>) : <p className="rounded-xl border border-dashed border-[#d4dfd4] px-4 py-5 text-sm text-[#778d82]">لا يوجد أعضاء يطابقون هذا البحث بعد.</p>}</div></section>
+      <section><p className="text-xs font-bold tracking-[0.14em] text-[#7b9287]">المنشورات</p><div className="mt-3 space-y-3">{results.data?.posts?.length ? results.data.posts.map(post => <div key={post.id} className="rounded-[20px] border border-[#dce5da] bg-white p-4"><div className="flex items-center gap-2"><span className="grid h-7 w-7 place-items-center rounded-lg bg-[#e5efe5] text-[#21684b]"><UsersRound size={14} /></span><p className="text-xs font-bold text-[#46685a]">{post.authorName || post.authorUsername || "عضو في الدائرة"}</p></div><p dir="auto" className="mt-3 text-sm leading-6 text-[#3c5d50]">{post.content}</p>{post.hashtags && <p className="mt-3 text-xs font-bold text-[#34735a]">{post.hashtags}</p>}</div>) : <p className="rounded-xl border border-dashed border-[#d4dfd4] px-4 py-5 text-sm text-[#778d82]">لا توجد منشورات تطابق هذا البحث بعد.</p>}</div></section>
+    </div>}
+  </div>;
 }
 
 function Rules() {
   return <div className="max-w-4xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10" dir="rtl"><PageIntro eyebrow="أمانة مشتركة" title="قواعد المجتمع" body="هذه القواعد بسيطة عن قصد؛ لتحفظ الثقة والانتباه وكرامة كل من في الدائرة." /><div className="overflow-hidden rounded-[24px] border border-[#dce5da] bg-white">{rules.map(([title, text], index) => <div key={title} className="flex gap-4 border-b border-[#edf1eb] p-5 last:border-0 sm:p-6"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#e6f0e5] text-xs font-extrabold text-[#1d674b]">0{index + 1}</span><div><h2 className="text-sm font-extrabold text-[#23483c]">{title}</h2><p className="mt-1.5 text-sm leading-6 text-[#668075]">{text}</p></div></div>)}</div><div className="mt-6 rounded-[20px] border border-[#e0d4aa] bg-[#f8f2df] p-5"><div className="flex gap-3"><ShieldCheck className="mt-0.5 shrink-0 text-[#967726]" size={19} /><p className="text-sm leading-6 text-[#61705c]">عند الإبلاغ عن محتوى، افتح قائمة النقاط الثلاث في منشور عضو آخر واختر <strong>«الإبلاغ عن المنشور»</strong>، ثم اختر الفئة الأدق: <strong>احتيال</strong> أو <strong>كذب</strong> أو <strong>محتوى مُفسد للعقل</strong> أو <strong>صور محرّمة</strong>. يُرسل البلاغ من خادم المنصة إلى المالك، ولا يفتح بريدك الشخصي.</p></div></div><a href="/terms" className="mt-5 inline-flex items-center gap-2 text-sm font-extrabold text-[#155a40] underline decoration-[#c6a04a] underline-offset-4">اقرأ ميثاق الدائرة وشروط الاستخدام <FileSearch size={16} /></a></div>;
+}
+
+function vapidKeyToBuffer(key: string) {
+  const padded = `${key}${"=".repeat((4 - (key.length % 4)) % 4)}`.replace(/-/g, "+").replace(/_/g, "/");
+  const binary = window.atob(padded);
+  return Uint8Array.from(binary, character => character.charCodeAt(0)).buffer;
+}
+
+function BrowserPushControl() {
+  const status = trpc.social.browserPushStatus.useQuery();
+  const save = trpc.social.saveBrowserPushSubscription.useMutation({ onSuccess: () => { status.refetch(); toast.success("تم تفعيل إشعارات المتصفح باختيارك."); }, onError: error => toast.error(error.message) });
+  const remove = trpc.social.removeBrowserPushSubscription.useMutation({ onSuccess: () => { status.refetch(); toast.success("تم إيقاف إشعارات المتصفح."); }, onError: error => toast.error(error.message) });
+  const [browserSupported, setBrowserSupported] = useState(false);
+  const [permission, setPermission] = useState<NotificationPermission | "unknown">("unknown");
+  const [browserSubscribed, setBrowserSubscribed] = useState(false);
+
+  useEffect(() => {
+    const supported = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+    setBrowserSupported(supported);
+    if (!supported) return;
+    setPermission(Notification.permission);
+    navigator.serviceWorker.register("/sw.js").then(registration => registration.pushManager.getSubscription()).then(subscription => setBrowserSubscribed(Boolean(subscription))).catch(() => setBrowserSubscribed(false));
+  }, []);
+
+  const enable = async () => {
+    if (!status.data?.publicKey || !browserSupported) return;
+    const granted = await Notification.requestPermission();
+    setPermission(granted);
+    if (granted !== "granted") { toast.error("لم يُسمح بالإشعارات من المتصفح."); return; }
+    try {
+      const registration = await navigator.serviceWorker.register("/sw.js");
+      const existing = await registration.pushManager.getSubscription();
+      const subscription = existing ?? await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: vapidKeyToBuffer(status.data.publicKey) });
+      const json = subscription.toJSON();
+      if (!json.endpoint || !json.keys?.p256dh || !json.keys.auth) throw new Error("تعذّر تجهيز اشتراك المتصفح.");
+      setBrowserSubscribed(true);
+      save.mutate({ endpoint: json.endpoint, p256dh: json.keys.p256dh, auth: json.keys.auth, userAgent: navigator.userAgent });
+    } catch (error) { toast.error(error instanceof Error ? error.message : "تعذّر تفعيل إشعارات المتصفح."); }
+  };
+
+  const disable = async () => {
+    try {
+      const registration = await navigator.serviceWorker.getRegistration();
+      const subscription = await registration?.pushManager.getSubscription();
+      const endpoint = subscription?.endpoint;
+      await subscription?.unsubscribe();
+      setBrowserSubscribed(false);
+      remove.mutate(endpoint ? { endpoint } : {});
+    } catch { remove.mutate({}); }
+  };
+
+  if (status.isLoading) return null;
+  if (!status.data?.available) return <section className="mb-5 rounded-[20px] border border-[#e4dcc2] bg-[#fbf8ed] p-4"><p className="text-sm font-extrabold text-[#5a5131]">إشعارات المتصفح قيد التهيئة</p><p className="mt-1 text-xs leading-5 text-[#756d55]">ستظهر إمكانية التفعيل هنا بعد تهيئة مفاتيح الإشعارات على الخادم. لا تُفعَّل تلقائيًا.</p></section>;
+  if (!browserSupported) return <section className="mb-5 rounded-[20px] border border-[#e4dcc2] bg-[#fbf8ed] p-4"><p className="text-sm font-extrabold text-[#5a5131]">هذا المتصفح لا يدعم إشعارات الويب</p><p className="mt-1 text-xs leading-5 text-[#756d55]">ستبقى إشعاراتك داخل الدائرة متاحة من هذه الصفحة.</p></section>;
+  const enabled = browserSubscribed || Boolean(status.data.subscribed);
+  return <section className="mb-5 rounded-[20px] border border-[#cfe1d2] bg-[#f3f8f3] p-4"><div className="flex items-start justify-between gap-4"><div><p className="text-sm font-extrabold text-[#275846]">إشعارات المتصفح</p><p className="mt-1 max-w-xl text-xs leading-5 text-[#5e796b]">اختيارية. تُستخدم للرسائل الخاصة وطلبات الصداقة والإشارات والردود فقط، وليس لزيادة التفاعل.</p></div><Button type="button" onClick={enabled ? disable : enable} disabled={save.isPending || remove.isPending || permission === "denied"} className="shrink-0 rounded-xl bg-[#0d4937] text-xs hover:bg-[#176047]">{enabled ? "إيقاف" : permission === "denied" ? "مرفوضة من المتصفح" : "تفعيل"}</Button></div></section>;
 }
 
 function Notifications() {
@@ -47,8 +112,8 @@ function Notifications() {
   const utils = trpc.useUtils();
   const notifications = trpc.social.notifications.useQuery(undefined, { enabled: isAuthenticated });
   const markRead = trpc.social.markNotificationRead.useMutation({ onSuccess: () => utils.social.notifications.invalidate() });
-  if (!isAuthenticated) return <div className="max-w-4xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10"><PageIntro eyebrow="ابقَ على اطلاع" title="الإشعارات" body="ستظهر هنا المتابعات والردود والإشارات المرتبطة بدائرتك." /><div className="rounded-[24px] border border-dashed border-[#cbd9cd] bg-[#fbfcf8] px-6 py-16 text-center"><span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-[#e5efe5] text-[#25684d]"><Bell size={24} /></span><h2 className="mt-5 font-display text-xl font-semibold text-[#264b3e]">سجّل الدخول لرؤية تحديثاتك.</h2><Button onClick={() => { window.location.href = "/auth"; }} className="mt-5 rounded-xl bg-[#0d4937] text-xs hover:bg-[#176047]">انضم إلى الدائرة</Button></div></div>;
-  return <div className="max-w-4xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10"><PageIntro eyebrow="Stay in the loop" title="Notifications" body="You will only see activity directly connected to your circle, without artificial engagement prompts." />{notifications.isLoading ? <div className="flex items-center gap-2 text-sm text-[#6c8579]"><Loader2 className="animate-spin" size={17} />Loading notifications…</div> : notifications.data?.length ? <div className="overflow-hidden rounded-[24px] border border-[#dce5da] bg-white">{notifications.data.map(({ notification, actorName, actorUsername, actorAvatar }) => <button key={notification.id} onClick={() => !notification.readAt && markRead.mutate({ notificationId: notification.id })} className={`flex w-full items-start gap-3 border-b border-[#edf1eb] p-5 text-left last:border-0 ${notification.readAt ? "bg-white" : "bg-[#f5faf5]"}`}><span className="grid h-10 w-10 shrink-0 place-items-center rounded-[14px] bg-[#e5efe5] text-xs font-extrabold text-[#176047]">{(actorName || actorUsername || "UC").split(" ").map(part => part[0]).join("").slice(0, 2)}</span><div><p className="text-sm leading-6 text-[#335548]"><strong>{actorName || actorUsername || "عضو في الدائرة"}</strong> {notification.message}</p><p className="mt-1 text-[11px] font-semibold text-[#81978b]">{new Date(notification.createdAt).toLocaleString("ar")}</p></div>{!notification.readAt && <span className="ml-auto mt-2 h-2 w-2 rounded-full bg-[#c29b42]" />}</button>)}</div> : <div className="rounded-[24px] border border-dashed border-[#cbd9cd] bg-[#fbfcf8] px-6 py-16 text-center"><span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-[#e5efe5] text-[#25684d]"><Bell size={24} /></span><h2 className="mt-5 font-display text-xl font-semibold text-[#264b3e]">مساحتك هادئة الآن.</h2><p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-[#748a7f]">ستظهر الإشعارات للمتابعين الجدد والإعجابات والتعليقات وإعادة النشر والإشارات.</p></div>}</div>;
+  if (!isAuthenticated) return <div dir="rtl" className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10"><PageIntro eyebrow="ابقَ على اطلاع" title="الإشعارات" body="ستظهر هنا المتابعات والردود والإشارات المرتبطة بدائرتك." /><div className="rounded-[24px] border border-dashed border-[#cbd9cd] bg-[#fbfcf8] px-6 py-16 text-center"><span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-[#e5efe5] text-[#25684d]"><Bell size={24} /></span><h2 className="mt-5 font-display text-xl font-semibold text-[#264b3e]">سجّل الدخول لرؤية تحديثاتك.</h2><Button onClick={() => { window.location.href = "/auth"; }} className="mt-5 rounded-xl bg-[#0d4937] text-xs hover:bg-[#176047]">انضم إلى الدائرة</Button></div></div>;
+  return <div dir="rtl" className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10"><PageIntro eyebrow="ابقَ على اطلاع" title="الإشعارات" body="سترى النشاط المرتبط بك مباشرة، من دون تنبيهات مصطنعة تدفعك للبقاء." /><BrowserPushControl />{notifications.isLoading ? <div className="flex items-center gap-2 text-sm text-[#6c8579]"><Loader2 className="animate-spin" size={17} />يجري تحميل الإشعارات…</div> : notifications.data?.length ? <div className="overflow-hidden rounded-[24px] border border-[#dce5da] bg-white">{notifications.data.map(({ notification, actorName, actorUsername, actorAvatar }) => <button key={notification.id} onClick={() => !notification.readAt && markRead.mutate({ notificationId: notification.id })} className={`flex w-full items-start gap-3 border-b border-[#edf1eb] p-5 text-right last:border-0 ${notification.readAt ? "bg-white" : "bg-[#f5faf5]"}`}><span className="grid h-10 w-10 shrink-0 place-items-center rounded-[14px] bg-[#e5efe5] text-xs font-extrabold text-[#176047]">{(actorName || actorUsername || "د").split(" ").map(part => part[0]).join("").slice(0, 2)}</span><div><p className="text-sm leading-6 text-[#335548]"><strong>{actorName || actorUsername || "عضو في الدائرة"}</strong> {notification.message}</p><p className="mt-1 text-[11px] font-semibold text-[#81978b]">{new Date(notification.createdAt).toLocaleString("ar")}</p></div>{!notification.readAt && <span className="mr-auto mt-2 h-2 w-2 rounded-full bg-[#c29b42]" />}</button>)}</div> : <div className="rounded-[24px] border border-dashed border-[#cbd9cd] bg-[#fbfcf8] px-6 py-16 text-center"><span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-[#e5efe5] text-[#25684d]"><Bell size={24} /></span><h2 className="mt-5 font-display text-xl font-semibold text-[#264b3e]">مساحتك هادئة الآن.</h2><p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-[#748a7f]">ستظهر الإشعارات للمتابعين الجدد والإعجابات والتعليقات وإعادة النشر والإشارات.</p></div>}</div>;
 }
 
 function Profile() {
