@@ -1,6 +1,7 @@
 import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import type { Express } from "express";
+import { getR2MediaBinding } from "./_core/runtime";
 
 const SIGNED_URL_TTL_SECONDS = 60 * 10;
 
@@ -71,8 +72,13 @@ export async function storagePut(
   data: Buffer | Uint8Array | string,
   contentType = "application/octet-stream",
 ): Promise<{ key: string; url: string }> {
-  const config = resolveObjectStorageConfig();
   const key = appendHashSuffix(normalizeKey(relKey));
+  const media = getR2MediaBinding();
+  if (media) {
+    await media.put(key, data, { httpMetadata: { contentType } });
+    return { key, url: uploadRouteForKey(key) };
+  }
+  const config = resolveObjectStorageConfig();
   const client = createObjectStorageClient(config);
 
   await client.send(
@@ -111,6 +117,18 @@ export function registerObjectStorageRoutes(app: Express) {
     }
 
     try {
+      const media = getR2MediaBinding();
+      if (media) {
+        const object = await media.get(key);
+        if (!object) {
+          res.status(404).send("File not found");
+          return;
+        }
+        if (object.httpMetadata?.contentType) res.type(object.httpMetadata.contentType);
+        res.set("Cache-Control", "private, max-age=300");
+        res.send(Buffer.from(await object.arrayBuffer()));
+        return;
+      }
       const signedUrl = await storageGetSignedUrl(key);
       res.set("Cache-Control", "private, max-age=300");
       res.redirect(307, signedUrl);

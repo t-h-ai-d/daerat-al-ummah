@@ -2,7 +2,7 @@
 
 ## Read this first
 
-**Cloudflare can host this platform, but the current repository is not a one-click Cloudflare deployment yet.** The source currently runs as a conventional Node/Express server with MySQL. Cloudflare Workers can run Express with the `nodejs_compat` compatibility flag, but it needs a Worker entry point rather than the existing Docker `app.listen()` deployment. Cloudflare does **not** provide managed MySQL; the present MySQL database must stay with a MySQL provider and connect through Cloudflare Hyperdrive. [1] [2]
+**Cloudflare can host this platform, and the repository now includes a Worker entry point.** The source preserves the conventional Node/Express route while also adding a Workers-compatible entry point with Hyperdrive and private R2 bindings. Cloudflare does **not** provide managed MySQL; the platform database must stay with a MySQL provider and connect through Cloudflare Hyperdrive. [1] [2]
 
 > **Use this architecture:** Cloudflare Workers + static frontend assets + Hyperdrive + your MySQL database + Cloudflare R2. Do not choose Cloudflare Pages-only hosting, GitHub Pages, or a static Vite deployment. They cannot run the platform API, local registration, chat, moderation, or database queries.
 
@@ -79,9 +79,9 @@ npx wrangler hyperdrive create daerat-mysql \
 
 Copy the returned Hyperdrive ID. The command checks the MySQL credentials before it creates the configuration. [4]
 
-## 5. Convert the current Node server into a Worker
+## 5. Configure the included Worker deployment
 
-This is the required code change. A Dockerfile is **not** used by Workers. Create a Cloudflare Worker configuration at the project root:
+The repository already includes `server/worker.ts`, a shared Express application factory, dual Node/Worker database selection, private R2 upload support, and `wrangler.jsonc`. A Dockerfile is **not** used by Workers. Replace the placeholder Hyperdrive ID in the project configuration with the real value returned in step 4:
 
 ```jsonc
 // wrangler.jsonc
@@ -110,7 +110,7 @@ This is the required code change. A Dockerfile is **not** used by Workers. Creat
 }
 ```
 
-Cloudflare’s Express guide uses `nodejs_compat`, starts Express on a local port, and exports `httpServerHandler` from `cloudflare:node`. [1] Refactor `server/_core/index.ts` so the Express application is created by an exported `createApp()` function. Then add this Worker entry point:
+Cloudflare’s Express guide uses `nodejs_compat`, starts Express on a local port, and exports `httpServerHandler` from `cloudflare:node`. [1] The equivalent source is already included in `server/worker.ts`:
 
 ```ts
 // server/worker.ts
@@ -123,11 +123,11 @@ app.listen(3000);
 export default httpServerHandler({ port: 3000 });
 ```
 
-Do **not** call `process.env` for deployed Worker secrets or bindings. Pass the Worker environment into the app/database setup, or use Cloudflare’s Worker environment access pattern. The Cloudflare guide exposes bindings through the Worker environment. [1]
+Do **not** add database credentials or R2 keys to committed files. The included Worker configures its request runtime from Cloudflare bindings; the Cloudflare guide exposes these bindings through the Worker environment. [1]
 
 ### Required database change
 
-In the Worker version of `server/db.ts`, create the `mysql2` connection from the Hyperdrive binding instead of `DATABASE_URL`:
+The included `server/db.ts` creates the `mysql2` connection from the Hyperdrive binding instead of `DATABASE_URL` when a Worker handles the request:
 
 ```ts
 import { createConnection } from "mysql2/promise";
@@ -146,7 +146,7 @@ Cloudflare’s MySQL example requires `disableEval: true` for `mysql2` in the Wo
 
 ### Required upload change
 
-For the Worker version, replace the AWS S3 client in `server/storage.ts` with the native R2 binding:
+The included `server/storage.ts` uses the native R2 binding when deployed as a Worker and retains the S3-compatible client for normal Node hosting:
 
 ```ts
 await env.MEDIA.put(objectKey, fileBytes, {
@@ -181,7 +181,7 @@ Use **one** new secret and keep it permanently. Changing `JWT_SECRET` signs ever
 
 ## 7. Build, test, and deploy
 
-Add these scripts to `package.json` during the Worker conversion:
+The project already includes these scripts in `package.json`:
 
 ```json
 {
@@ -255,7 +255,7 @@ Copy R2 objects to a second bucket or a local encrypted drive. Keep the MySQL ex
 
 ## 10. The honest final answer
 
-If you want **the current source online today**, use the corrected Node Docker deployment with MySQL and R2 because it is already ready and tested. If you want **Cloudflare Workers**, first complete the Worker conversion in sections 5–7. Do not point Cloudflare Pages at the current repository and expect it to run the backend: that produces the blank/static preview problem you already saw.
+The source can now be built as a Cloudflare Worker with `pnpm cf:deploy` once you replace the Hyperdrive ID, set `JWT_SECRET`, and log into the Cloudflare account that owns the MySQL, R2, and domain. Do not point Cloudflare Pages at the repository and expect it to run the backend: that produces the blank/static preview problem you already saw.
 
 The Cloudflare setup is independent of Manus once the MySQL database, R2 bucket, Worker source, secrets, backups, and domain are all under accounts you control.
 

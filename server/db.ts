@@ -9,6 +9,7 @@ import {
   sql,
 } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
+import { createConnection } from "mysql2/promise";
 import {
   comments,
   conversationParticipants,
@@ -27,13 +28,31 @@ import {
   users,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
+import { getHyperdriveBinding } from "./_core/runtime";
 
-let _db: ReturnType<typeof drizzle> | null = null;
+async function createRuntimeDb() {
+  const hyperdrive = getHyperdriveBinding();
+  if (hyperdrive) {
+    const client = await createConnection({
+      host: hyperdrive.host,
+      port: Number(hyperdrive.port),
+      user: hyperdrive.user,
+      password: hyperdrive.password,
+      database: hyperdrive.database,
+      disableEval: true,
+    });
+    return drizzle({ client });
+  }
+  if (ENV.databaseUrl) return drizzle(ENV.databaseUrl);
+  return null;
+}
+
+let _db: Awaited<ReturnType<typeof createRuntimeDb>> = null;
 
 export async function getDb() {
-  if (!_db && process.env.DATABASE_URL) {
+  if (!_db) {
     try {
-      _db = drizzle(process.env.DATABASE_URL);
+      _db = await createRuntimeDb();
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;

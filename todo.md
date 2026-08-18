@@ -82,4 +82,8 @@
 - [x] Write and publish a complete Cloudflare deployment, secrets, and backup guide for the platform.
 - [x] Push the Cloudflare guide and research notes to the private repository, then save the documented deployment state.
 - [x] Review the committed guide for the final Worker, Hyperdrive, R2, secrets, and recovery instructions.
-- [ ] Save a checkpoint for the published Cloudflare deployment guide and research notes.
+- [x] Save a checkpoint for the published Cloudflare deployment guide and research notes.
+- [x] Audit Node-only APIs and server entry points that must be adapted for Cloudflare Workers.
+- [x] Add Worker, Hyperdrive, and R2 bindings without breaking the existing Node deployment path.
+- [x] Validate a Cloudflare Worker build and document the account-specific deployment command.
+- [ ] Push the validated Cloudflare Worker source, configuration, generated binding types, and deployment guide to GitHub.
