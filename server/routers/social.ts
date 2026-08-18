@@ -3,6 +3,11 @@ import { z } from "zod";
 import * as db from "../db";
 import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
 import { storagePut } from "../storage";
+import { sendPostReportEmail } from "../reportEmail";
+
+export const MAX_ATTACHMENT_BYTES = 50_000_000;
+export const MAX_ATTACHMENT_BASE64_CHARS = 68_000_000;
+export const reportCategorySchema = z.enum(["scam", "lie", "brainrot", "haram imagery"]);
 
 export const attachmentSchema = z.object({
   kind: z.enum(["image", "gif", "video", "file", "link"]),
@@ -10,7 +15,7 @@ export const attachmentSchema = z.object({
   storageKey: z.string().max(512).nullable().optional(),
   filename: z.string().max(255).nullable().optional(),
   mimeType: z.string().max(128).nullable().optional(),
-  sizeBytes: z.number().int().positive().max(50_000_000).nullable().optional(),
+  sizeBytes: z.number().int().positive().max(MAX_ATTACHMENT_BYTES).nullable().optional(),
 });
 
 const communitySlugSchema = z.string().trim().toLowerCase().min(3).max(96).regex(/^[a-z0-9-]+$/, "استخدم أحرفًا إنجليزية صغيرة وأرقامًا وشرطات فقط.");
@@ -56,6 +61,16 @@ export const socialRouter = router({
   deletePost: protectedProcedure
     .input(z.object({ postId: z.number().int().positive() }))
     .mutation(({ ctx, input }) => db.deletePostByAuthor(ctx.user.id, input.postId)),
+  updatePost: protectedProcedure
+    .input(z.object({ postId: z.number().int().positive(), content: z.string().trim().min(1).max(5000).optional(), visibility: z.enum(["public", "friends"]).optional() }).refine(input => input.content !== undefined || input.visibility !== undefined, "حدّد تغييرًا واحدًا على الأقل."))
+    .mutation(({ ctx, input }) => db.updatePostByAuthor(ctx.user.id, input.postId, { content: input.content, visibility: input.visibility })),
+  submitReport: protectedProcedure
+    .input(z.object({ postId: z.number().int().positive(), category: reportCategorySchema, details: z.string().trim().max(2000).optional() }))
+    .mutation(async ({ ctx, input }) => {
+      const report = await db.createReport(ctx.user.id, input.postId, input.category, input.details);
+      await sendPostReportEmail({ reportId: report.reportId, postId: input.postId, reporterId: ctx.user.id, reporterName: ctx.user.username || ctx.user.name, category: input.category, details: input.details });
+      return { ...report, delivered: true as const };
+    }),
   toggleFollow: protectedProcedure
     .input(z.object({ targetUserId: z.number().int().positive() }))
     .mutation(({ ctx, input }) => db.toggleFollow(ctx.user.id, input.targetUserId)),
@@ -86,15 +101,15 @@ export const socialRouter = router({
     .input(z.object({ username: z.string().trim().min(3).max(32).regex(/^[a-zA-Z0-9_\u0600-\u06FF]+$/).optional(), avatarUrl: z.string().trim().max(2000).optional(), bio: z.string().trim().max(500).optional(), country: z.string().trim().max(96).optional(), madhhabPreference: z.string().trim().max(48).optional(), profileVisibility: z.enum(["public", "friends"]).optional() }))
     .mutation(({ ctx, input }) => db.updateProfile(ctx.user.id, input)),
   uploadAttachment: protectedProcedure
-    .input(z.object({ filename: z.string().min(1).max(255), mimeType: z.string().min(1).max(128), dataBase64: z.string().min(1).max(68_000_000) }))
+    .input(z.object({ filename: z.string().min(1).max(255), mimeType: z.string().min(1).max(128), dataBase64: z.string().min(1).max(MAX_ATTACHMENT_BASE64_CHARS) }))
     .mutation(async ({ ctx, input }) => {
       const isImage = input.mimeType.startsWith("image/");
       const isVideo = input.mimeType.startsWith("video/");
       if (!isImage && !isVideo && !safeMimeTypes.has(input.mimeType)) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "This file type is not supported." });
+        throw new TRPCError({ code: "BAD_REQUEST", message: "نوع هذا الملف غير مدعوم." });
       }
       const bytes = Buffer.from(input.dataBase64, "base64");
-      if (!bytes.length || bytes.length > 50_000_000) throw new TRPCError({ code: "PAYLOAD_TOO_LARGE", message: "Files must be 50 MB or smaller." });
+      if (!bytes.length || bytes.length > MAX_ATTACHMENT_BYTES) throw new TRPCError({ code: "PAYLOAD_TOO_LARGE", message: "حجم المرفق يجب أن يكون 50 ميغابايت أو أقل." });
       const result = await storagePut(`${ctx.user.id}/posts/${safeFilename(input.filename)}`, bytes, input.mimeType);
       return { ...result, filename: input.filename, mimeType: input.mimeType, sizeBytes: bytes.length, kind: input.mimeType === "image/gif" ? "gif" as const : isImage ? "image" as const : isVideo ? "video" as const : "file" as const };
     }),

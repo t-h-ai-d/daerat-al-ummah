@@ -450,7 +450,12 @@ export async function listMyPosts(authorId: number) {
 }
 
 export function assertPostOwnership<T extends { id: number }>(post: T | undefined): T {
-  if (!post) throw new Error("You can only delete your own post.");
+  if (!post) throw new Error("لا يمكنك إدارة إلا منشورك أنت.");
+  return post;
+}
+
+export function assertReportablePost<T extends { authorId: number }>(post: T, reporterId: number): T {
+  if (post.authorId === reporterId) throw new Error("لا يمكنك الإبلاغ عن منشورك أنت.");
   return post;
 }
 
@@ -460,6 +465,21 @@ export async function deletePostByAuthor(authorId: number, postId: number) {
   assertPostOwnership(post);
   await db.delete(posts).where(eq(posts.id, postId));
   return { deleted: true as const, postId };
+}
+
+export async function updatePostByAuthor(authorId: number, postId: number, data: { content?: string; visibility?: "public" | "friends" }) {
+  const db = await requireDb();
+  const [post] = await db.select({ id: posts.id }).from(posts).where(and(eq(posts.id, postId), eq(posts.authorId, authorId))).limit(1);
+  assertPostOwnership(post);
+  const values: { content?: string; visibility?: "public" | "friends"; hashtags?: string | null } = {};
+  if (data.content !== undefined) {
+    values.content = data.content;
+    values.hashtags = (data.content.match(/(^|\s)#[A-Za-z0-9_-]+/g) ?? []).map(tag => tag.trim()).join(" ") || null;
+  }
+  if (data.visibility !== undefined) values.visibility = data.visibility;
+  if (!Object.keys(values).length) throw new Error("لم تُحدَّد تغييرات للمنشور.");
+  await db.update(posts).set(values).where(and(eq(posts.id, postId), eq(posts.authorId, authorId)));
+  return { updated: true as const, postId };
 }
 
 export async function getFriendIds(userId: number) {
@@ -681,8 +701,10 @@ export async function addComment(userId: number, postId: number, content: string
 
 export async function createReport(reporterId: number, postId: number, category: "scam" | "lie" | "brainrot" | "haram imagery", details?: string) {
   const db = await requireDb();
-  await findPost(postId);
-  await db.insert(reports).values({ reporterId, postId, category, details: details || null });
+  const post = await findPost(postId);
+  assertReportablePost(post, reporterId);
+  const [created] = await db.insert(reports).values({ reporterId, postId, category, details: details || null });
+  return { reportId: Number(created.insertId), postId };
 }
 
 export async function searchCircle(query: string, viewerId?: number) {

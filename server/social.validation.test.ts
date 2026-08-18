@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
-import { attachmentSchema } from "./routers/social";
-import { interleaveFeedAuthors } from "./db";
+import { attachmentSchema, reportCategorySchema } from "./routers/social";
+import { assertPostOwnership, assertReportablePost, interleaveFeedAuthors } from "./db";
 
 function createAuthenticatedContext(): TrpcContext {
   return {
@@ -34,9 +34,28 @@ describe("social input safeguards", () => {
     await expect(caller.social.createPost({ content: "", visibility: "public", attachments: [] })).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
 
-  it("does not expose an in-platform report mutation", () => {
+  it("exposes the protected in-app report mutation but not the retired generic report route", () => {
     const socialProcedures = appRouter._def.procedures;
     expect("social.report" in socialProcedures).toBe(false);
+    expect("social.submitReport" in socialProcedures).toBe(true);
+  });
+
+  it("accepts only the four report categories used by the backend report form", () => {
+    expect(reportCategorySchema.safeParse("scam").success).toBe(true);
+    expect(reportCategorySchema.safeParse("lie").success).toBe(true);
+    expect(reportCategorySchema.safeParse("brainrot").success).toBe(true);
+    expect(reportCategorySchema.safeParse("haram imagery").success).toBe(true);
+    expect(reportCategorySchema.safeParse("other").success).toBe(false);
+  });
+
+  it("prevents self-reporting before a report can be recorded or emailed", () => {
+    expect(() => assertReportablePost({ authorId: 7 }, 7)).toThrow("لا يمكنك الإبلاغ عن منشورك أنت.");
+    expect(assertReportablePost({ authorId: 8 }, 7)).toEqual({ authorId: 8 });
+  });
+
+  it("requires author ownership before a post can be edited or deleted", () => {
+    expect(() => assertPostOwnership(undefined)).toThrow("لا يمكنك إدارة إلا منشورك أنت.");
+    expect(assertPostOwnership({ id: 31 })).toEqual({ id: 31 });
   });
 
   it("rejects unsupported upload types before any storage call", async () => {

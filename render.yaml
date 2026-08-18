@@ -19,6 +19,10 @@ services:
         value: "true"
       - key: OPENAI_API_KEY
         sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM_EMAIL
+        sync: false
       - key: S3_ENDPOINT
         sync: false
       - key: S3_REGION

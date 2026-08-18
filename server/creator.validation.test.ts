@@ -47,7 +47,7 @@ describe("creator controls validation", () => {
   });
 
   it("prevents deletion when a post does not belong to the requesting author", () => {
-    expect(() => assertPostOwnership(undefined)).toThrow("You can only delete your own post.");
+    expect(() => assertPostOwnership(undefined)).toThrow("لا يمكنك إدارة إلا منشورك أنت.");
   });
 
   it("allows self-service deletion only for local email-and-password accounts", () => {

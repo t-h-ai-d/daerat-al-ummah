@@ -123,3 +123,23 @@
 - [x] Add transparent, finite, non-addictive ordering choices for feed posts without engagement-maximizing recommendations or endless scrolling.
 - [x] Verify together that normal-zoom home reachability, email-only reports, hidden moderation workspaces, communities, emoji, GIF, and AI-screening safeguards do not regress one another.
 - [x] Add a concise Arabic Qur'an-and-Sunnah ethics summary to the member terms, with source references and a clear note that it is not a substitute for qualified religious guidance.
+- [ ] Diagnose and restore failed avatar, post-media, GIF, and file uploads on the independent Render and Backblaze B2 deployment.
+- [ ] Audit and repair any remaining avatar or profile-image URL-only validation so selected files always use direct upload with clear Arabic feedback.
+- [x] Raise the API JSON body limit safely for base64 upload payloads and align client file-size checks with the real server limit.
+- [x] Make author-owned post deletion visible and functional from the post menu, with confirmation and Arabic feedback.
+- [x] Require an explicit three-dot menu selection before opening the report form; no report action triggers accidentally or opens a mail app.
+- [x] Build a three-dot post options menu with author-only edit, delete, and visibility actions, plus a separate report option for other members.
+- [x] Replace browser mailto reporting with an in-app report form that submits to the backend and delivers the report to the owner email.
+- [x] Configure server-only Resend delivery code and Render Blueprint variables without exposing the credential to members.
+- [x] Replace browser mailto reporting with a three-dot in-app report form that submits to the backend and delivers the report to the owner email.
+- [x] Prioritize backend-delivered three-dot reporting before post options, upload follow-up, or browser-notification work.
+- [x] Configure a server-only email delivery provider for independent Render deployment, without exposing its credential to members.
+- [ ] Add explicit opt-in browser notification enrollment, preference controls, and a respectful delivery policy for direct messages, friendships, mentions, and replies.
+- [x] Add and run safeguards for backend report submission and author-only post updates.
+- [x] Bring community post cards to parity with the home three-dot menu and in-app report flow.
+- [x] Update the Arabic privacy policy and terms to describe in-app server-delivered reports rather than browser mail links.
+- [ ] Push the verified repair release to GitHub and redeploy it to Render after the owner adds the Resend secret.
+- [ ] Verify avatar and post attachment uploads on the live Render and Backblaze B2 deployment after redeployment.
+- [x] Remove the remaining mailto report link from the member-facing rules page and describe the in-app server-delivered report flow.
+- [x] Replace the community attachment upload fallback with explicit Arabic error feedback.
+- [ ] Verify the community three-dot menu, author controls, and report form against a real rendered community post.
