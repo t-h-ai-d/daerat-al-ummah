@@ -207,3 +207,4 @@
 - [x] Permit attachment-only community posts and give them the same Arabic upload recovery behavior as the main composer.
 - [x] Diagnose and repair the live upload path that returns HTML instead of JSON, causing «Unexpected token '<'» and «Failed to fetch».
 - [x] Ensure every composer uploads text, video, image, and file content through one user-safe flow that never exposes raw network or JSON parsing errors.
+- [ ] Fix the authenticated live upload attempt that still fails after a member selects an ordinary file.

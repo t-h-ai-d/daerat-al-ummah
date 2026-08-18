@@ -45,13 +45,18 @@ export function resolveObjectStorageConfig(env: NodeJS.ProcessEnv = process.env)
     throw new Error("Object storage endpoint is not a valid HTTP URL.");
   }
 
+  const backblazeRegion = new URL(normalizedEndpoint).hostname.match(/^s3\.([a-z]{2}-[a-z]+-\d+)\.backblazeb2\.com$/i)?.[1];
+
   return {
     endpoint: normalizedEndpoint,
-    region: env.S3_REGION?.trim() || "auto",
+    // Backblaze B2 rejects placeholder or endpoint values as AWS regions. Its S3 endpoint
+    // already contains the authoritative region, so prefer it over a copied dashboard value.
+    region: backblazeRegion || env.S3_REGION?.trim() || "auto",
     bucket: bucket!,
     accessKeyId: accessKeyId!,
     secretAccessKey: secretAccessKey!,
-    forcePathStyle: env.S3_FORCE_PATH_STYLE === "true",
+    // B2 documents path-style S3 requests; this also avoids invalid virtual-host names.
+    forcePathStyle: Boolean(backblazeRegion) || env.S3_FORCE_PATH_STYLE === "true",
   };
 }
 
