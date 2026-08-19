@@ -228,7 +228,7 @@
 - [x] Add protected group-chat creation with bounded member lists, Arabic group naming, list display, and shared message/delete flows.
 - [x] Add the channel community type with Arabic creation UI, visibility support, schema migration, and validation coverage.
 
-- [ ] Complete the complex-platform integration map across content, communities, chat, discovery, creator tools, privacy, safety, and notifications.
+- [x] Complete the complex-platform integration map across content, communities, chat, discovery, creator tools, privacy, safety, and notifications.
 - [ ] Add richer community structures: channels, subcommunities, pinned resources, membership rules, and community navigation.
 - [ ] Add richer social graph controls: follows, friends, mentions, tags, blocks, restricted members, reposts, shares, and saved collections.
 - [ ] Add richer messaging: replies, message search, read states, and participant controls.
