@@ -40,6 +40,14 @@ describe("independent production schema guard", () => {
     expect(bootstrap).toContain("REFERENCES `communities` (`id`)");
   });
 
+  it("includes private saved collections in the independent bootstrap", () => {
+    const bootstrap = readFileSync(resolve(process.cwd(), "docs/independent-schema-bootstrap.sql"), "utf8");
+    expect(bootstrap).toContain("CREATE TABLE IF NOT EXISTS `savedCollections`");
+    expect(bootstrap).toContain("CREATE TABLE IF NOT EXISTS `savedCollectionItems`");
+    expect(bootstrap).toContain("saved_collection_item_unique");
+    expect(bootstrap).toContain("REFERENCES `posts` (`id`)");
+  });
+
   it("adds only legacy account, post, and attachment-security columns that are absent", () => {
     const missing = missingIndependentSchemaCompatibilityColumns([
       "users.id",

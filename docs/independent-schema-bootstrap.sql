@@ -111,6 +111,29 @@ CREATE TABLE IF NOT EXISTS `communityResources` (
   CONSTRAINT `communityResources_authorId_users_id_fk` FOREIGN KEY (`authorId`) REFERENCES `users` (`id`) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS `savedCollections` (
+  `id` int AUTO_INCREMENT NOT NULL,
+  `userId` int NOT NULL,
+  `title` varchar(80) NOT NULL,
+  `createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updatedAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `saved_collections_user_updated_idx` (`userId`,`updatedAt`),
+  CONSTRAINT `savedCollections_userId_users_id_fk` FOREIGN KEY (`userId`) REFERENCES `users` (`id`) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS `savedCollectionItems` (
+  `id` int AUTO_INCREMENT NOT NULL,
+  `collectionId` int NOT NULL,
+  `postId` int NOT NULL,
+  `createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `saved_collection_item_unique` (`collectionId`,`postId`),
+  KEY `saved_collection_items_collection_created_idx` (`collectionId`,`createdAt`),
+  CONSTRAINT `savedCollectionItems_collectionId_savedCollections_id_fk` FOREIGN KEY (`collectionId`) REFERENCES `savedCollections` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `savedCollectionItems_postId_posts_id_fk` FOREIGN KEY (`postId`) REFERENCES `posts` (`id`) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS `conversationParticipants` (
   `id` int AUTO_INCREMENT NOT NULL,
   `conversationId` int NOT NULL,

@@ -297,6 +297,38 @@ export const savedPosts = mysqlTable(
   ],
 );
 
+export const savedCollections = mysqlTable(
+  "savedCollections",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    title: varchar("title", { length: 80 }).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => [index("saved_collections_user_updated_idx").on(table.userId, table.updatedAt)],
+);
+
+export const savedCollectionItems = mysqlTable(
+  "savedCollectionItems",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    collectionId: int("collectionId")
+      .notNull()
+      .references(() => savedCollections.id, { onDelete: "cascade" }),
+    postId: int("postId")
+      .notNull()
+      .references(() => posts.id, { onDelete: "cascade" }),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  table => [
+    uniqueIndex("saved_collection_item_unique").on(table.collectionId, table.postId),
+    index("saved_collection_items_collection_created_idx").on(table.collectionId, table.createdAt),
+  ],
+);
+
 export const postAttachments = mysqlTable(
   "postAttachments",
   {

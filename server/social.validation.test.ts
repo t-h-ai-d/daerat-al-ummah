@@ -113,6 +113,20 @@ describe("social input safeguards", () => {
     await expect(caller.social.toggleSavedPost({ postId: 0 })).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
 
+  it("exposes private saved-collection controls and rejects invalid collection input", async () => {
+    const socialProcedures = appRouter._def.procedures;
+    expect("social.savedCollections" in socialProcedures).toBe(true);
+    expect("social.createSavedCollection" in socialProcedures).toBe(true);
+    expect("social.deleteSavedCollection" in socialProcedures).toBe(true);
+    expect("social.savedCollectionPosts" in socialProcedures).toBe(true);
+    expect("social.addPostToSavedCollection" in socialProcedures).toBe(true);
+    expect("social.removePostFromSavedCollection" in socialProcedures).toBe(true);
+    const caller = appRouter.createCaller(createAuthenticatedContext());
+    await expect(caller.social.createSavedCollection({ title: "   " })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    await expect(caller.social.savedCollectionPosts({ collectionId: 0 })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    await expect(caller.social.addPostToSavedCollection({ collectionId: 1, postId: 0 })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+
   it("exposes direct-upload tickets and quarantines executable or script files before delivery", () => {
     const socialProcedures = appRouter._def.procedures;
     expect("social.prepareAttachmentUpload" in socialProcedures).toBe(true);

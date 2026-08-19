@@ -259,3 +259,4 @@
 - [x] Correct the misleading “large file” message for failed small-video uploads and expose a safe, actionable relay-versus-direct-upload error state.
 - [x] Remove automatic playback from the full-screen published-video viewer while retaining explicit playback controls.
 - [x] Add owner-managed pinned community resources with public/member visibility enforcement and Arabic RTL UI.
+- [x] Add private saved-content collections so members can organize useful posts without creating a ranked feed or exposing collections publicly.

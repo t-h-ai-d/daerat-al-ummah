@@ -33,6 +33,8 @@ import {
   posts,
       reports,
     reposts,
+    savedCollectionItems,
+    savedCollections,
     savedPosts,
 
   type InsertUser,
@@ -637,10 +639,93 @@ export async function toggleSavedPost(userId: number, postId: number) {
   const [existing] = await db.select({ id: savedPosts.id }).from(savedPosts).where(and(eq(savedPosts.userId, userId), eq(savedPosts.postId, postId))).limit(1);
   if (existing) {
     await db.delete(savedPosts).where(and(eq(savedPosts.userId, userId), eq(savedPosts.postId, postId)));
+    const collections = await db.select({ id: savedCollections.id }).from(savedCollections).where(eq(savedCollections.userId, userId));
+    if (collections.length) await db.delete(savedCollectionItems).where(and(eq(savedCollectionItems.postId, postId), inArray(savedCollectionItems.collectionId, collections.map(collection => collection.id))));
     return { saved: false as const, postId };
   }
   await db.insert(savedPosts).values({ userId, postId });
   return { saved: true as const, postId };
+}
+
+async function assertSavedCollectionOwner(userId: number, collectionId: number) {
+  const db = await requireDb();
+  const [collection] = await db.select().from(savedCollections).where(and(eq(savedCollections.id, collectionId), eq(savedCollections.userId, userId))).limit(1);
+  if (!collection) throw new Error("مجموعة المحفوظات غير متاحة.");
+  return collection;
+}
+
+export async function listSavedCollections(userId: number) {
+  const db = await requireDb();
+  return db
+    .select({
+      id: savedCollections.id,
+      title: savedCollections.title,
+      createdAt: savedCollections.createdAt,
+      updatedAt: savedCollections.updatedAt,
+      itemCount: sql<number>`count(${savedCollectionItems.id})`,
+    })
+    .from(savedCollections)
+    .leftJoin(savedCollectionItems, eq(savedCollectionItems.collectionId, savedCollections.id))
+    .where(eq(savedCollections.userId, userId))
+    .groupBy(savedCollections.id, savedCollections.title, savedCollections.createdAt, savedCollections.updatedAt)
+    .orderBy(desc(savedCollections.updatedAt))
+    .limit(30);
+}
+
+export async function createSavedCollection(userId: number, title: string) {
+  const db = await requireDb();
+  const collections = await db.select({ id: savedCollections.id }).from(savedCollections).where(eq(savedCollections.userId, userId)).limit(30);
+  if (collections.length >= 30) throw new Error("يمكنك إنشاء 30 مجموعة محفوظات كحدّ أقصى.");
+  const result = await db.insert(savedCollections).values({ userId, title });
+  return { id: Number(result[0].insertId), title };
+}
+
+export async function deleteSavedCollection(userId: number, collectionId: number) {
+  const db = await requireDb();
+  await assertSavedCollectionOwner(userId, collectionId);
+  await db.delete(savedCollections).where(and(eq(savedCollections.id, collectionId), eq(savedCollections.userId, userId)));
+  return { deleted: true as const, collectionId };
+}
+
+export async function addPostToSavedCollection(userId: number, collectionId: number, postId: number) {
+  const db = await requireDb();
+  await assertSavedCollectionOwner(userId, collectionId);
+  const [post] = await db.select().from(posts).where(and(eq(posts.id, postId), eq(posts.moderationStatus, "published"))).limit(1);
+  if (!post) throw new Error("هذا المنشور غير متاح.");
+  await assertCanAccessPost(userId, post);
+  const [alreadySaved] = await db.select({ id: savedPosts.id }).from(savedPosts).where(and(eq(savedPosts.userId, userId), eq(savedPosts.postId, postId))).limit(1);
+  if (!alreadySaved) await db.insert(savedPosts).values({ userId, postId });
+  const [existing] = await db.select({ id: savedCollectionItems.id }).from(savedCollectionItems).where(and(eq(savedCollectionItems.collectionId, collectionId), eq(savedCollectionItems.postId, postId))).limit(1);
+  if (!existing) await db.insert(savedCollectionItems).values({ collectionId, postId });
+  await db.update(savedCollections).set({ updatedAt: new Date() }).where(eq(savedCollections.id, collectionId));
+  return { added: !existing, collectionId, postId };
+}
+
+export async function removePostFromSavedCollection(userId: number, collectionId: number, postId: number) {
+  const db = await requireDb();
+  await assertSavedCollectionOwner(userId, collectionId);
+  await db.delete(savedCollectionItems).where(and(eq(savedCollectionItems.collectionId, collectionId), eq(savedCollectionItems.postId, postId)));
+  return { removed: true as const, collectionId, postId };
+}
+
+export async function listSavedCollectionPosts(userId: number, collectionId: number) {
+  const db = await requireDb();
+  await assertSavedCollectionOwner(userId, collectionId);
+  const rows = await db
+    .select({ savedAt: savedCollectionItems.createdAt, post: posts, author: users })
+    .from(savedCollectionItems)
+    .innerJoin(posts, eq(savedCollectionItems.postId, posts.id))
+    .innerJoin(users, eq(posts.authorId, users.id))
+    .where(and(eq(savedCollectionItems.collectionId, collectionId), eq(posts.moderationStatus, "published")))
+    .orderBy(desc(savedCollectionItems.createdAt))
+    .limit(100);
+  const friendIds = await getFriendIds(userId);
+  return rows.filter(row => row.post.visibility === "public" || row.post.authorId === userId || friendIds.has(row.post.authorId)).map(row => ({
+    ...row.post,
+    savedAt: row.savedAt,
+    author: { id: row.author.id, name: row.author.name, username: row.author.username, avatarUrl: row.author.avatarUrl },
+    savedByViewer: true as const,
+  }));
 }
 
 export async function listSavedPosts(userId: number) {

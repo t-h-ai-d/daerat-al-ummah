@@ -167,6 +167,22 @@ export const socialRouter = router({
     .input(z.object({ postId: z.number().int().positive() }))
     .mutation(({ ctx, input }) => db.toggleSavedPost(ctx.user.id, input.postId)),
   savedPosts: protectedProcedure.query(({ ctx }) => db.listSavedPosts(ctx.user.id)),
+  savedCollections: protectedProcedure.query(({ ctx }) => db.listSavedCollections(ctx.user.id)),
+  createSavedCollection: protectedProcedure
+    .input(z.object({ title: z.string().trim().min(1, "اكتب اسماً للمجموعة.").max(80) }))
+    .mutation(({ ctx, input }) => db.createSavedCollection(ctx.user.id, input.title)),
+  deleteSavedCollection: protectedProcedure
+    .input(z.object({ collectionId: z.number().int().positive() }))
+    .mutation(({ ctx, input }) => db.deleteSavedCollection(ctx.user.id, input.collectionId)),
+  savedCollectionPosts: protectedProcedure
+    .input(z.object({ collectionId: z.number().int().positive() }))
+    .query(({ ctx, input }) => db.listSavedCollectionPosts(ctx.user.id, input.collectionId)),
+  addPostToSavedCollection: protectedProcedure
+    .input(z.object({ collectionId: z.number().int().positive(), postId: z.number().int().positive() }))
+    .mutation(({ ctx, input }) => db.addPostToSavedCollection(ctx.user.id, input.collectionId, input.postId)),
+  removePostFromSavedCollection: protectedProcedure
+    .input(z.object({ collectionId: z.number().int().positive(), postId: z.number().int().positive() }))
+    .mutation(({ ctx, input }) => db.removePostFromSavedCollection(ctx.user.id, input.collectionId, input.postId)),
   addComment: protectedProcedure
     .input(z.object({ postId: z.number().int().positive(), content: z.string().trim().min(1).max(1800) }))
     .mutation(({ ctx, input }) => db.addComment(ctx.user.id, input.postId, input.content)),
