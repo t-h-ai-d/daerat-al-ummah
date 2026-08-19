@@ -240,3 +240,4 @@
 - [x] Add persistent Arabic light/dark theme switching with accessible contrast across navigation, feeds, composers, chat, communities, studio, and empty states.
 - [x] Remove unwanted Cloudflare deployment, worker, Pages, DNS, and documentation references from the project and GitHub workflow while preserving Render deployment.
 - [x] Add protected message replies with same-conversation validation, Arabic reply UI, cancel action, schema migration, and contract coverage.
+- [x] Move the pnpm override to pnpm-workspace.yaml and remove the deprecated package.json pnpm block so Render builds without the ignored-field warning.
