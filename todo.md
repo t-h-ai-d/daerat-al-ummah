@@ -264,3 +264,7 @@
 - [ ] Add regression coverage for the signed-out public feed and verify the deployed Render database is the intended data source.
 - [x] Add regression coverage for the signed-out public feed query and its separate cache key.
 - [ ] Verify the deployed Render service points at the intended persistent TiDB database after the next deploy.
+- [ ] Run a final feature audit against the full agreed social-platform requirements and record verified completion, external setup dependencies, and remaining defects.
+- [ ] Reproduce and resolve any final errors found in public feed, authentication, Studio publishing, uploads, messaging, communities, notifications, or independent hosting.
+- [ ] Verify the live Render service uses the intended current GitHub commit and the persistent TiDB/Backblaze configuration without exposing secrets.
+- [ ] Push the current audited commits to GitHub main and recheck the anonymous public feed plus a small-video upload on the Render deployment.
