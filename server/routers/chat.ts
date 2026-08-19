@@ -8,6 +8,11 @@ function mapChatError(error: unknown) {
   return new TRPCError({ code: "BAD_REQUEST", message });
 }
 
+export const groupConversationInputSchema = z.object({
+  name: z.string().trim().max(120).default(""),
+  usernames: z.array(z.string().trim().min(3).max(32)).min(2).max(19),
+});
+
 export const directMessageInputSchema = z.object({
   conversationId: z.number().int().positive(),
   content: z.string().trim().max(3000).default(""),
@@ -27,7 +32,7 @@ export const chatRouter = router({
       }
     }),
   createGroup: protectedProcedure
-    .input(z.object({ name: z.string().trim().max(120).default(""), usernames: z.array(z.string().trim().min(3).max(32)).min(2).max(19) }))
+    .input(groupConversationInputSchema)
     .mutation(async ({ ctx, input }) => {
       try {
         return await db.startGroupConversation(ctx.user.id, input.name, input.usernames);

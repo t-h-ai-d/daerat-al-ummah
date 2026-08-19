@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { TrpcContext } from "./_core/context";
 import { assertConversationParticipant } from "./db";
-import { chatRouter, directMessageInputSchema } from "./routers/chat";
+import { chatRouter, directMessageInputSchema, groupConversationInputSchema } from "./routers/chat";
 
 const ctx = {
   user: {
@@ -34,6 +34,12 @@ describe("chat input safeguards", () => {
   it("rejects blank private messages before they reach a conversation", async () => {
     const caller = chatRouter.createCaller(ctx);
     await expect(caller.send({ conversationId: 1, content: "   " })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+
+  it("validates bounded group-chat member lists", () => {
+    expect(groupConversationInputSchema.safeParse({ name: "أصدقاء العلم", usernames: ["one", "two"] }).success).toBe(true);
+    expect(groupConversationInputSchema.safeParse({ name: "مجموعة", usernames: ["one"] }).success).toBe(false);
+    expect(groupConversationInputSchema.safeParse({ name: "مجموعة", usernames: Array.from({ length: 20 }, (_, index) => `user${index}`) }).success).toBe(false);
   });
 
   it("accepts a GIF-only message but requires both GIF fields", () => {
