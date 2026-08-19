@@ -6,7 +6,8 @@ WORKDIR /app
 
 COPY . .
 
-RUN npm install -g corepack@latest \
+RUN npm install -g corepack@0.31.0 \
+  && corepack install --global pnpm@10.4.1 \
   && corepack pnpm install --frozen-lockfile \
   && corepack pnpm build
 

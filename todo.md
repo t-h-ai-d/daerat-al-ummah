@@ -247,3 +247,7 @@
 
 - [x] Add member blocking with non-destructive schema migration, protected toggle/list procedures, self/invalid-target validation, and Arabic discovery UI confirmation.
 - [x] Add an Arabic blocked-members management panel with protected unblock actions, loading/empty states, and immediate query refresh.
+
+- [x] Diagnose the external build failure during `corepack pnpm install --frozen-lockfile` and `pnpm build`.
+- [x] Pin a reproducible pnpm/Corepack installation path for Render and external Node hosts, then verify a clean frozen-lockfile build.
+- [ ] Revalidate the final deployment command after the package-manager fix.
