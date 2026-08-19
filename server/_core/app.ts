@@ -12,9 +12,11 @@ export const MAX_BASE64_UPLOAD_BODY = "70mb";
 
 export function createApp() {
   const app = express();
+  // Register binary upload/download routes before body parsers so octet-stream PUT
+  // requests can never be mistaken for a JSON/page request by the hosting fallback.
+  registerObjectStorageRoutes(app);
   app.use(express.json({ limit: MAX_BASE64_UPLOAD_BODY }));
   app.use(express.urlencoded({ limit: MAX_BASE64_UPLOAD_BODY, extended: true }));
-  registerObjectStorageRoutes(app);
   app.use(
     "/api/trpc",
     createExpressMiddleware({

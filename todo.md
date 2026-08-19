@@ -208,7 +208,7 @@
 - [x] Diagnose and repair the live upload path that returns HTML instead of JSON, causing «Unexpected token '<'» and «Failed to fetch».
 - [x] Ensure every composer uploads text, video, image, and file content through one user-safe flow that never exposes raw network or JSON parsing errors.
 - [ ] Fix the authenticated live upload attempt that still fails after a member selects an ordinary file.
-- [ ] Correct the mismatch between the client relay URL and the server relay route so PUT requests cannot fall into the HTML page fallback.
+- [x] Correct the mismatch between the client relay URL and the server relay route so PUT requests cannot fall into the HTML page fallback.
 
 - [x] Define the expanded social-platform feature map without removing the anti-addictive finite-feed rules.
 - [ ] Add a unified content hub for text, images, video, GIFs, audio, documents, live-ready drafts, and mixed posts.
