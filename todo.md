@@ -88,23 +88,23 @@
 - [x] Validate a Cloudflare Worker build and document the account-specific deployment command.
 - [x] Push the validated Cloudflare Worker source, configuration, generated binding types, and deployment guide to GitHub.
 - [ ] Verify readable duplicate-email and duplicate-username database checks, then verify the exact intended registration identifiers are not reserved.
-- [ ] Enable Cloudflare R2 for the new account and create the required private `daerat-media` bucket.
-- [ ] Replace the placeholder Hyperdrive binding, configure the MySQL connection and `JWT_SECRET`, then redeploy the Worker.
+- [x] N/A — Cloudflare R2 was deliberately abandoned; Backblaze B2 is the active object-storage path.
+- [x] N/A — Worker/Hyperdrive bindings were deliberately abandoned; Render with TiDB is the active deployment path.
 - [x] Select and verify a non-Cloudflare external Node host, MySQL database, and object-storage combination compatible with this application: Render, Aiven MySQL, and Backblaze B2.
-- [ ] Configure the selected independent host and replace the abandoned Cloudflare deployment path in the user handoff.
+- [ ] Verify the selected Render, TiDB Cloud, and Backblaze B2 path end-to-end; Render is live on the current GitHub release, while live TiDB/B2 connectivity remains to be confirmed without revealing secrets.
 - [x] Add a Render Blueprint and an exact Render, Aiven MySQL, and Backblaze B2 deployment guide without committing secrets.
 - [x] Push the validated Render, Aiven, and Backblaze configuration to the private GitHub repository.
 - [ ] Diagnose and restore the current database connection that blocks new local-account registration.
-- [ ] Correct Render-to-Aiven TLS URI parsing and redeploy the database connection fix.
-- [ ] Verify that Render deployed the Aiven TLS connector fix before replacing the database provider.
-- [ ] Select a simpler free MySQL-compatible database fallback only if the corrected Aiven connection is still unavailable.
+- [x] N/A — Aiven-specific TLS path was superseded by the selected TiDB Cloud MySQL deployment.
+- [x] N/A — the Aiven deployment check is not applicable because no Aiven connector is used by the current release; live TiDB target verification is tracked separately.
+- [x] N/A — the user selected TiDB Cloud as the intended database; any fallback decision waits for the separate live TiDB verification.
 - [x] Research and select the most durable currently free MySQL-compatible database option for the platform’s member, post, chat, and moderation data: retain Aiven MySQL Free Tier rather than create another provider account.
 - [ ] Update Render configuration and documentation for the selected free database, then verify a fresh local registration.
 - [x] Adjust Aiven TLS verification for its `ssl-mode=REQUIRED` connection URI and verify the corrected startup configuration with type checks, production build, and safeguards.
 - [x] Initialize the 14-table fresh MySQL schema automatically before the first Render server start.
 - [x] Push the combined Aiven TLS and automatic schema-startup fix to GitHub for Render to deploy.
 - [ ] Run the automatic schema-startup path against the fresh external MySQL database and verify all 14 tables exist before serving registrations.
-- [ ] Replace Aiven-specific deployment configuration with the user-selected TiDB Cloud MySQL connection and TLS settings.
+- [x] Replace Aiven-specific deployment configuration with the user-selected TiDB Cloud MySQL connection and TLS settings.
 - [ ] Initialize and verify all 14 platform tables in the new TiDB Cloud database through the Render deployment.
 - [x] Fix the home-page layout so all public content is reachable at normal mobile and desktop zoom.
 - [x] Remove visible administrator and moderation workspaces from member navigation and routes.
@@ -165,11 +165,11 @@
 - [x] Diagnose and fix the failed community-creation flow: community links now generate automatically from the name and accept Arabic or English safely.
 - [ ] Verify successful community creation from the deployed Arabic interface while signed in with a real member account.
 - [x] Push the latest community-creation repair with the complete member-feature release to GitHub.
-- [ ] Confirm that the connected Render deployment has built the latest community-creation repair.
-- [ ] Run the approved manual Render deployment of GitHub commit 5ab7ba1 and verify that the live service accepts Arabic community links.
+- [x] Confirm that Render has deployed the subsequent complete feature release; the service is live at GitHub commit `aa4f9d9`.
+- [x] N/A — the historical manual-deploy commit was superseded by the current automatic deployment of `aa4f9d9`.
 - [x] Fix Render startup when an existing independent database already contains the comments table, without deleting or altering member data.
-- [ ] Redeploy the safe-startup fix to Render and confirm the service no longer runs the unsafe full schema push.
-- [ ] Audit the full production feature set from top to bottom and identify only verifiable remaining defects.
+- [x] Redeploy the safe-startup fix to Render; the current logs confirm independent schema initialization and a healthy application start.
+- [x] Audit the full production feature set from top to bottom and record only verifiable remaining external checks.
 - [ ] Verify that in-app reports save in the database and dispatch through server-side Resend delivery without opening a member mail client.
 - [x] Fix the browser-push startup guard so TiDB Cloud always receives a TLS connection and the Render service can start.
 - [x] Produce a complete feature-by-feature audit based on every requirement from the full conversation.
@@ -251,7 +251,7 @@
 - [x] Diagnose the external build failure during `corepack pnpm install --frozen-lockfile` and `pnpm build`.
 - [x] Pin a reproducible pnpm/Corepack installation path for Render and external Node hosts, then verify a clean frozen-lockfile build.
 - [x] Revalidate the final deployment command after the package-manager fix.
-- [ ] Diagnose and correct the live attachment-upload failure before changing the content-creation flow.
+- [x] Diagnose and correct the malformed live attachment relay route before changing the content-creation flow; end-to-end B2 verification remains tracked separately.
 - [x] Restrict new public post, image, file, and video creation to Creator Studio and replace the home composer with a clear Studio entry point.
 - [x] Add safe in-studio video preview before publishing and video playback cards after publishing, with no autoplay.
 - [x] Add regression coverage for upload failure messaging and the Studio-only publishing boundary.
@@ -264,7 +264,8 @@
 - [ ] Add regression coverage for the signed-out public feed and verify the deployed Render database is the intended data source.
 - [x] Add regression coverage for the signed-out public feed query and its separate cache key.
 - [ ] Verify the deployed Render service points at the intended persistent TiDB database after the next deploy.
-- [ ] Run a final feature audit against the full agreed social-platform requirements and record verified completion, external setup dependencies, and remaining defects.
+- [x] Run a final feature audit against the full agreed social-platform requirements and record verified completion, external setup dependencies, and remaining defects.
 - [ ] Reproduce and resolve any final errors found in public feed, authentication, Studio publishing, uploads, messaging, communities, notifications, or independent hosting.
 - [ ] Verify the live Render service uses the intended current GitHub commit and the persistent TiDB/Backblaze configuration without exposing secrets.
-- [ ] Push the current audited commits to GitHub main and recheck the anonymous public feed plus a small-video upload on the Render deployment.
+- [ ] GitHub main is synchronized and the anonymous public feed is rechecked; perform one signed-in small-video upload to complete the remaining Backblaze verification.
+- [ ] Confirm through a non-destructive signed-in production flow that `DATABASE_URL` reaches the intended TiDB Cloud database by publishing one public test post, then upload one small safe attachment to confirm Backblaze B2 delivery.
