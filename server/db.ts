@@ -215,6 +215,19 @@ async function requireConversationParticipant(userId: number, conversationId: nu
   return assertConversationParticipant(membership);
 }
 
+export async function startGroupConversation(userId: number, name: string, usernames: string[]) {
+  const db = await requireDb();
+  const normalized = Array.from(new Set(usernames.map(value => value.trim().replace(/^@/, "")).filter(Boolean))).filter(username => username.length >= 3);
+  if (normalized.length < 2 || normalized.length > 19) throw new Error("أضف اسمَي مستخدم على الأقل وبحد أقصى 19 عضوًا.");
+  const members = await Promise.all(normalized.map(username => getUserByUsername(username)));
+  const validMembers = members.filter((member): member is NonNullable<typeof member> => Boolean(member && member.accountStatus !== "banned" && member.id !== userId));
+  if (validMembers.length !== normalized.length) throw new Error("تأكد من أسماء المستخدمين؛ لا يمكن إضافة عضو غير موجود أو محظور.");
+  const created = await db.insert(conversations).values({ kind: "group", name: name.trim().slice(0, 120) || "مجموعة الدائرة" });
+  const conversationId = Number(created[0].insertId);
+  await db.insert(conversationParticipants).values([{ conversationId, userId }, ...validMembers.map(member => ({ conversationId, userId: member.id }))]);
+  return { conversationId, name: name.trim().slice(0, 120) || "مجموعة الدائرة", memberCount: validMembers.length + 1 };
+}
+
 export async function startDirectConversation(userId: number, targetUsername: string) {
   const db = await requireDb();
   const target = await getUserByUsername(targetUsername);
@@ -239,6 +252,7 @@ export async function listDirectConversations(userId: number) {
   const db = await requireDb();
   const memberships = await db.select().from(conversationParticipants).where(eq(conversationParticipants.userId, userId));
   const entries = await Promise.all(memberships.map(async membership => {
+    const [conversation] = await db.select().from(conversations).where(eq(conversations.id, membership.conversationId)).limit(1);
     const [other] = await db
       .select({ id: users.id, name: users.name, username: users.username, avatarUrl: users.avatarUrl })
       .from(conversationParticipants)
@@ -251,6 +265,10 @@ export async function listDirectConversations(userId: number) {
       .where(eq(directMessages.conversationId, membership.conversationId))
       .orderBy(desc(directMessages.createdAt))
       .limit(1);
+    if (conversation?.kind === "group") {
+      const [{ total }] = await db.select({ total: sql<number>`count(*)` }).from(conversationParticipants).where(eq(conversationParticipants.conversationId, membership.conversationId));
+      return { conversationId: membership.conversationId, other: { id: conversation.id, name: conversation.name || "مجموعة الدائرة", username: `${Number(total)} أعضاء`, avatarUrl: null }, latest, updatedAt: latest?.createdAt ?? membership.joinedAt };
+    }
     return { conversationId: membership.conversationId, other, latest, updatedAt: latest?.createdAt ?? membership.joinedAt };
   }));
   return entries.sort((a, b) => Number(b.updatedAt) - Number(a.updatedAt));

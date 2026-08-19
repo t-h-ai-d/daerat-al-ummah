@@ -26,6 +26,15 @@ export const chatRouter = router({
         throw mapChatError(error);
       }
     }),
+  createGroup: protectedProcedure
+    .input(z.object({ name: z.string().trim().max(120).default(""), usernames: z.array(z.string().trim().min(3).max(32)).min(2).max(19) }))
+    .mutation(async ({ ctx, input }) => {
+      try {
+        return await db.startGroupConversation(ctx.user.id, input.name, input.usernames);
+      } catch (error) {
+        throw mapChatError(error);
+      }
+    }),
   messages: protectedProcedure
     .input(z.object({ conversationId: z.number().int().positive() }))
     .query(async ({ ctx, input }) => {

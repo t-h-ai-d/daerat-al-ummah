@@ -76,7 +76,8 @@ export const communityMembers = mysqlTable(
 
 export const conversations = mysqlTable("conversations", {
   id: int("id").autoincrement().primaryKey(),
-  kind: mysqlEnum("kind", ["direct"]).default("direct").notNull(),
+  kind: mysqlEnum("kind", ["direct", "group"]).default("direct").notNull(),
+  name: varchar("name", { length: 120 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 

@@ -216,7 +216,7 @@
 - [ ] Expand social graph features with follows, friends, blocking, restricted access, mentions, tags, saved posts, reposts, and share links.
 - [ ] Expand messaging with group chats, media messages, replies, search, read states, and per-member deletion controls.
 - [x] Add platform-wide search and discovery with finite, non-ranked result pages and Arabic-aware indexing.
-- [x] Add creator analytics, scheduled drafts, content collections, and a richer member-facing Creator Studio.
+- [ ] Add creator analytics, scheduled drafts, content collections, and a richer member-facing Creator Studio.
 - [ ] Add privacy, safety, report, anti-spam, audit, and notification controls for the expanded feature set.
 - [ ] Re-validate the live upload path before adding larger media features.
 - [ ] Publish the prioritized expansion in staged releases with regression tests.
@@ -224,3 +224,5 @@
 - [x] Add the member-visible Arabic saved-posts page and navigation route with signed-out and empty states.
 - [x] Add an author/member-controlled remove action inside the saved-posts page.
 - [x] Add an author/member-controlled remove action inside the saved-posts page.
+- [x] Add real per-post engagement counts to Creator Studio without engagement-ranked feed behavior.
+- [x] Add protected group-chat creation with bounded member lists, Arabic group naming, list display, and shared message/delete flows.
