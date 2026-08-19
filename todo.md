@@ -246,3 +246,4 @@
 - [x] Add lastReadAt-based unread message counts to the conversation list with Arabic capped badges and no feed-ranking behavior.
 
 - [x] Add member blocking with non-destructive schema migration, protected toggle/list procedures, self/invalid-target validation, and Arabic discovery UI confirmation.
+- [x] Add an Arabic blocked-members management panel with protected unblock actions, loading/empty states, and immediate query refresh.
