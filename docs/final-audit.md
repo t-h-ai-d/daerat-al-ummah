@@ -92,3 +92,9 @@ The Render Environment screen lists the expected configuration names: `DATABASE_
 The latest Render application logs show the independent schema initialized, the server listening normally on its platform port, and the deployment declared live. No fresh application exception, failed migration, or boot failure appeared in the reviewed log window.
 
 An additional read-only database-host check could not be performed because Render Shell is unavailable to this service's free instance. No production command was run and no value was revealed. The live service is healthy, but the exact hidden `DATABASE_URL` target must therefore be confirmed by the owner in Render Environment or indirectly through one signed-in test publication.
+
+### 7. Visual route check (local production-equivalent preview)
+
+The current RTL desktop preview rendered the home feed, Creator Studio, Content Hub, communities, sign-in gate for chat, and notifications page without a visual route failure. The home view shows a purposeful Studio-only publishing entry and the calm empty-state wording; the Hub shows finite filters; and no member-facing admin or moderator area appears in the inspected navigation. This visual check does not substitute for signed-in interaction testing of uploads, comments, notifications, messaging, or community creation.
+
+At a 375px mobile viewport, the home view, Creator Studio, and communities view remained usable: the compact navigation appeared without covering the Studio entry or the community-creation control, and the content remained within the viewport.
