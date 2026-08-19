@@ -29,8 +29,10 @@ import {
   notifications,
   postAttachments,
   posts,
-  reports,
-  reposts,
+      reports,
+    reposts,
+    savedPosts,
+
   type InsertUser,
   users,
 } from "../drizzle/schema";
@@ -539,6 +541,39 @@ export async function updatePostByAuthor(authorId: number, postId: number, data:
   return { updated: true as const, postId };
 }
 
+export async function toggleSavedPost(userId: number, postId: number) {
+  const db = await requireDb();
+  const [post] = await db.select().from(posts).where(and(eq(posts.id, postId), eq(posts.moderationStatus, "published"))).limit(1);
+  if (!post) throw new Error("هذا المنشور غير متاح.");
+  await assertCanAccessPost(userId, post);
+  const [existing] = await db.select({ id: savedPosts.id }).from(savedPosts).where(and(eq(savedPosts.userId, userId), eq(savedPosts.postId, postId))).limit(1);
+  if (existing) {
+    await db.delete(savedPosts).where(and(eq(savedPosts.userId, userId), eq(savedPosts.postId, postId)));
+    return { saved: false as const, postId };
+  }
+  await db.insert(savedPosts).values({ userId, postId });
+  return { saved: true as const, postId };
+}
+
+export async function listSavedPosts(userId: number) {
+  const db = await requireDb();
+  const rows = await db
+    .select({ savedAt: savedPosts.createdAt, post: posts, author: users })
+    .from(savedPosts)
+    .innerJoin(posts, eq(savedPosts.postId, posts.id))
+    .innerJoin(users, eq(posts.authorId, users.id))
+    .where(and(eq(savedPosts.userId, userId), eq(posts.moderationStatus, "published")))
+    .orderBy(desc(savedPosts.createdAt))
+    .limit(100);
+  const friendIds = await getFriendIds(userId);
+  return rows.filter(row => row.post.visibility === "public" || row.post.authorId === userId || friendIds.has(row.post.authorId)).map(row => ({
+    ...row.post,
+    savedAt: row.savedAt,
+    author: { id: row.author.id, name: row.author.name, username: row.author.username, avatarUrl: row.author.avatarUrl },
+    savedByViewer: true as const,
+  }));
+}
+
 export async function getFriendIds(userId: number) {
   const db = await requireDb();
   const links = await db.select().from(friendships).where(and(eq(friendships.status, "accepted"), or(eq(friendships.requesterId, userId), eq(friendships.recipientId, userId))));
@@ -580,19 +615,21 @@ export async function listFeed(viewerId?: number, mode: "following" | "chronolog
   rows = rows.filter(row => row.post.visibility === "public" || (viewerId !== undefined && (row.post.authorId === viewerId || friendIds.has(row.post.authorId)))).slice(0, 40);
   const postIds = rows.map(row => row.post.id);
   if (!postIds.length) return [];
-  const [attachmentRows, likeRows, commentRows, repostRows, viewerLikeRows, viewerRepostRows] = await Promise.all([
+  const [attachmentRows, likeRows, commentRows, repostRows, viewerLikeRows, viewerRepostRows, viewerSavedRows] = await Promise.all([
     db.select().from(postAttachments).where(inArray(postAttachments.postId, postIds)),
     db.select({ postId: likes.postId, total: sql<number>`count(*)` }).from(likes).where(inArray(likes.postId, postIds)).groupBy(likes.postId),
     db.select({ postId: comments.postId, total: sql<number>`count(*)` }).from(comments).where(inArray(comments.postId, postIds)).groupBy(comments.postId),
     db.select({ postId: reposts.postId, total: sql<number>`count(*)` }).from(reposts).where(inArray(reposts.postId, postIds)).groupBy(reposts.postId),
     viewerId ? db.select({ postId: likes.postId }).from(likes).where(and(eq(likes.userId, viewerId), inArray(likes.postId, postIds))) : Promise.resolve([]),
     viewerId ? db.select({ postId: reposts.postId }).from(reposts).where(and(eq(reposts.userId, viewerId), inArray(reposts.postId, postIds))) : Promise.resolve([]),
+    viewerId ? db.select({ postId: savedPosts.postId }).from(savedPosts).where(and(eq(savedPosts.userId, viewerId), inArray(savedPosts.postId, postIds))) : Promise.resolve([]),
   ]);
   const asNumberMap = (items: Array<{ postId: number; total: number }>) => new Map(items.map(item => [item.postId, Number(item.total)]));
   const attachmentMap = new Map<number, typeof attachmentRows>();
   attachmentRows.forEach(item => attachmentMap.set(item.postId ?? 0, [...(attachmentMap.get(item.postId ?? 0) ?? []), item]));
   const viewerLikes = new Set(viewerLikeRows.map(item => item.postId));
   const viewerReposts = new Set(viewerRepostRows.map(item => item.postId));
+  const viewerSaved = new Set(viewerSavedRows.map(item => item.postId));
   const likeMap = asNumberMap(likeRows);
   const commentMap = asNumberMap(commentRows);
   const repostMap = asNumberMap(repostRows);
@@ -605,6 +642,7 @@ export async function listFeed(viewerId?: number, mode: "following" | "chronolog
     repostCount: repostMap.get(row.post.id) ?? 0,
     likedByViewer: viewerLikes.has(row.post.id),
     repostedByViewer: viewerReposts.has(row.post.id),
+    savedByViewer: viewerSaved.has(row.post.id),
   }));
   const mediaFiltered = mediaType ? formatted.filter(post => post.attachments.some(attachment => attachment.kind === mediaType)) : formatted;
   return visibilityScope === "public" ? mediaFiltered.filter(post => post.visibility === "public") : mediaFiltered;
@@ -624,13 +662,14 @@ export async function listCommunityFeed(viewerId: number | undefined, communityI
   const visibleRows = rows.filter(row => row.post.visibility === "public" || (viewerId !== undefined && (row.post.authorId === viewerId || friendIds.has(row.post.authorId))));
   const postIds = visibleRows.map(row => row.post.id);
   if (!postIds.length) return [];
-  const [attachmentRows, likeRows, commentRows, repostRows, viewerLikeRows, viewerRepostRows] = await Promise.all([
+  const [attachmentRows, likeRows, commentRows, repostRows, viewerLikeRows, viewerRepostRows, viewerSavedRows] = await Promise.all([
     db.select().from(postAttachments).where(inArray(postAttachments.postId, postIds)),
     db.select({ postId: likes.postId, total: sql<number>`count(*)` }).from(likes).where(inArray(likes.postId, postIds)).groupBy(likes.postId),
     db.select({ postId: comments.postId, total: sql<number>`count(*)` }).from(comments).where(inArray(comments.postId, postIds)).groupBy(comments.postId),
     db.select({ postId: reposts.postId, total: sql<number>`count(*)` }).from(reposts).where(inArray(reposts.postId, postIds)).groupBy(reposts.postId),
     viewerId ? db.select({ postId: likes.postId }).from(likes).where(and(eq(likes.userId, viewerId), inArray(likes.postId, postIds))) : Promise.resolve([]),
     viewerId ? db.select({ postId: reposts.postId }).from(reposts).where(and(eq(reposts.userId, viewerId), inArray(reposts.postId, postIds))) : Promise.resolve([]),
+    viewerId ? db.select({ postId: savedPosts.postId }).from(savedPosts).where(and(eq(savedPosts.userId, viewerId), inArray(savedPosts.postId, postIds))) : Promise.resolve([]),
   ]);
   const asNumberMap = (items: Array<{ postId: number; total: number }>) => new Map(items.map(item => [item.postId, Number(item.total)]));
   const attachmentMap = new Map<number, typeof attachmentRows>();
@@ -640,6 +679,7 @@ export async function listCommunityFeed(viewerId: number | undefined, communityI
   const repostMap = asNumberMap(repostRows);
   const viewerLikes = new Set(viewerLikeRows.map(item => item.postId));
   const viewerReposts = new Set(viewerRepostRows.map(item => item.postId));
+  const viewerSaved = new Set(viewerSavedRows.map(item => item.postId));
   return visibleRows.map(row => ({
     ...row.post,
     author: { id: row.author.id, name: row.author.name, username: row.author.username, avatarUrl: row.author.avatarUrl, country: row.author.country, madhhabPreference: row.author.madhhabPreference },
@@ -649,6 +689,7 @@ export async function listCommunityFeed(viewerId: number | undefined, communityI
     repostCount: repostMap.get(row.post.id) ?? 0,
     likedByViewer: viewerLikes.has(row.post.id),
     repostedByViewer: viewerReposts.has(row.post.id),
+    savedByViewer: viewerSaved.has(row.post.id),
   }));
 }
 

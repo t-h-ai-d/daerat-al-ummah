@@ -237,6 +237,24 @@ export const reposts = mysqlTable(
   ],
 );
 
+export const savedPosts = mysqlTable(
+  "savedPosts",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    postId: int("postId")
+      .notNull()
+      .references(() => posts.id, { onDelete: "cascade" }),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  table => [
+    uniqueIndex("saved_posts_user_post_unique").on(table.userId, table.postId),
+    index("saved_posts_user_created_idx").on(table.userId, table.createdAt),
+  ],
+);
+
 export const postAttachments = mysqlTable(
   "postAttachments",
   {

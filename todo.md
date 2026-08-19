@@ -208,3 +208,16 @@
 - [x] Diagnose and repair the live upload path that returns HTML instead of JSON, causing «Unexpected token '<'» and «Failed to fetch».
 - [x] Ensure every composer uploads text, video, image, and file content through one user-safe flow that never exposes raw network or JSON parsing errors.
 - [ ] Fix the authenticated live upload attempt that still fails after a member selects an ordinary file.
+- [ ] Correct the mismatch between the client relay URL and the server relay route so PUT requests cannot fall into the HTML page fallback.
+
+- [ ] Define the expanded social-platform feature map without removing the anti-addictive finite-feed rules.
+- [ ] Add a unified content hub for text, images, video, GIFs, audio, documents, live-ready drafts, and mixed posts.
+- [ ] Expand communities into groups, channels, subcommunities, events, pinned resources, and member-controlled visibility.
+- [ ] Expand social graph features with follows, friends, blocking, restricted access, mentions, tags, saved posts, reposts, and share links.
+- [ ] Expand messaging with group chats, media messages, replies, search, read states, and per-member deletion controls.
+- [ ] Add platform-wide search and discovery with finite, non-ranked result pages and Arabic-aware indexing.
+- [ ] Add creator analytics, scheduled drafts, content collections, and a richer member-facing Creator Studio.
+- [ ] Add privacy, safety, report, anti-spam, audit, and notification controls for the expanded feature set.
+- [ ] Re-validate the live upload path before adding larger media features.
+- [ ] Publish the prioritized expansion in staged releases with regression tests.
+- [x] Ship the first expansion slice: database-backed saved posts with protected tRPC procedures, feed state, Arabic UI feedback, migration, and regression coverage.

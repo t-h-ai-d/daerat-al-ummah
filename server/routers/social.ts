@@ -140,6 +140,10 @@ export const socialRouter = router({
   toggleRepost: protectedProcedure
     .input(z.object({ postId: z.number().int().positive() }))
     .mutation(({ ctx, input }) => db.toggleRepost(ctx.user.id, input.postId)),
+  toggleSavedPost: protectedProcedure
+    .input(z.object({ postId: z.number().int().positive() }))
+    .mutation(({ ctx, input }) => db.toggleSavedPost(ctx.user.id, input.postId)),
+  savedPosts: protectedProcedure.query(({ ctx }) => db.listSavedPosts(ctx.user.id)),
   addComment: protectedProcedure
     .input(z.object({ postId: z.number().int().positive(), content: z.string().trim().min(1).max(1800) }))
     .mutation(({ ctx, input }) => db.addComment(ctx.user.id, input.postId, input.content)),
