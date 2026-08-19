@@ -2,7 +2,6 @@ import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } fro
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import express, { type Express } from "express";
 import { Readable } from "node:stream";
-import { getR2MediaBinding } from "./_core/runtime";
 import { getPostAttachmentScanStatus } from "./db";
 import { attachmentScanStatus, isAttachmentDownloadAllowed, requiresAttachmentQuarantine } from "./attachmentSecurity";
 import { getLocalSessionUser } from "./localAuth";
@@ -125,11 +124,6 @@ export async function storagePut(
   contentType = "application/octet-stream",
 ): Promise<{ key: string; url: string }> {
   const key = appendHashSuffix(normalizeKey(relKey));
-  const media = getR2MediaBinding();
-  if (media) {
-    await media.put(key, data, { httpMetadata: { contentType } });
-    return { key, url: uploadRouteForKey(key) };
-  }
   const config = resolveObjectStorageConfig();
   const client = createObjectStorageClient(config);
 
@@ -152,12 +146,6 @@ export async function storageGet(relKey: string): Promise<{ key: string; url: st
 
 export async function storageDelete(relKey: string): Promise<void> {
   const key = normalizeKey(relKey);
-  const media = getR2MediaBinding();
-  if (media) {
-    await media.delete(key);
-    return;
-  }
-
   const config = resolveObjectStorageConfig();
   const client = createObjectStorageClient(config);
   await client.send(new DeleteObjectCommand({ Bucket: config.bucket, Key: key }));
@@ -175,13 +163,6 @@ export async function storageGetSignedUrl(relKey: string): Promise<string> {
 
 export async function storageGetPrivateReadStream(relKey: string): Promise<{ body: Readable; contentLength?: number }> {
   const key = normalizeKey(relKey);
-  const media = getR2MediaBinding();
-  if (media) {
-    const object = await media.get(key);
-    if (!object) throw new Error("The quarantined object was not found.");
-    return { body: Readable.from(Buffer.from(await object.arrayBuffer())) };
-  }
-
   const config = resolveObjectStorageConfig();
   const client = createObjectStorageClient(config);
   const object = await client.send(new GetObjectCommand({ Bucket: config.bucket, Key: key }));
@@ -251,18 +232,6 @@ export function registerObjectStorageRoutes(app: Express) {
           res.status(scanStatus ? 423 : 404).send(scanStatus === "blocked" ? "Attachment blocked by security scan" : "Attachment is quarantined pending a security scan");
           return;
         }
-      }
-      const media = getR2MediaBinding();
-      if (media) {
-        const object = await media.get(key);
-        if (!object) {
-          res.status(404).send("File not found");
-          return;
-        }
-        if (object.httpMetadata?.contentType) res.type(object.httpMetadata.contentType);
-        res.set("Cache-Control", "private, max-age=300");
-        res.send(Buffer.from(await object.arrayBuffer()));
-        return;
       }
       const signedUrl = await storageGetSignedUrl(key);
       res.set("Cache-Control", "private, max-age=300");

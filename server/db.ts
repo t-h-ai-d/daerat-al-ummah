@@ -39,7 +39,6 @@ import {
 import { AI_MODERATION_MODEL, reviewPostWithAi } from "./aiModeration";
 import { attachmentScanStatus } from "./attachmentSecurity";
 import { ENV } from "./_core/env";
-import { getHyperdriveBinding } from "./_core/runtime";
 
 export function parseTlsDatabaseUrl(databaseUrl: string) {
   const parsed = new URL(databaseUrl);
@@ -61,18 +60,6 @@ export function parseTlsDatabaseUrl(databaseUrl: string) {
 }
 
 async function createRuntimeDb() {
-  const hyperdrive = getHyperdriveBinding();
-  if (hyperdrive) {
-    const client = await createConnection({
-      host: hyperdrive.host,
-      port: Number(hyperdrive.port),
-      user: hyperdrive.user,
-      password: hyperdrive.password,
-      database: hyperdrive.database,
-      disableEval: true,
-    });
-    return drizzle({ client });
-  }
   if (ENV.databaseUrl) {
     if (!ENV.databaseSsl) return drizzle(ENV.databaseUrl);
     const client = await createConnection(parseTlsDatabaseUrl(ENV.databaseUrl));

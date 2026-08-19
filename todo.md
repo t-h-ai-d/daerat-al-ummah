@@ -238,3 +238,4 @@
 - [ ] Add regression tests for every new complex-platform contract and permission boundary.
 - [ ] Run full RTL, upload, moderation, and production-build verification after the complex integration.
 - [x] Add persistent Arabic light/dark theme switching with accessible contrast across navigation, feeds, composers, chat, communities, studio, and empty states.
+- [x] Remove unwanted Cloudflare deployment, worker, Pages, DNS, and documentation references from the project and GitHub workflow while preserving Render deployment.
