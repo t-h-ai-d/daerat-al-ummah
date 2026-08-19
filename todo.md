@@ -227,3 +227,14 @@
 - [x] Add real per-post engagement counts to Creator Studio without engagement-ranked feed behavior.
 - [x] Add protected group-chat creation with bounded member lists, Arabic group naming, list display, and shared message/delete flows.
 - [x] Add the channel community type with Arabic creation UI, visibility support, schema migration, and validation coverage.
+
+- [ ] Complete the complex-platform integration map across content, communities, chat, discovery, creator tools, privacy, safety, and notifications.
+- [ ] Add richer community structures: channels, subcommunities, pinned resources, membership rules, and community navigation.
+- [ ] Add richer social graph controls: follows, friends, mentions, tags, blocks, restricted members, reposts, shares, and saved collections.
+- [ ] Add richer messaging: replies, message search, read states, and participant controls.
+- [ ] Add finite Arabic-aware search and discovery filters across posts, members, communities, and attachments.
+- [ ] Add creator workflow tools: drafts, collections, scheduled publishing, media metadata, and real analytics.
+- [ ] Add privacy and safety center controls with reports, anti-spam actions, attachment scanning states, and browser notification preferences.
+- [ ] Add regression tests for every new complex-platform contract and permission boundary.
+- [ ] Run full RTL, upload, moderation, and production-build verification after the complex integration.
+- [x] Add persistent Arabic light/dark theme switching with accessible contrast across navigation, feeds, composers, chat, communities, studio, and empty states.

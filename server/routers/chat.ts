@@ -17,8 +17,9 @@ export const directMessageInputSchema = z.object({
   conversationId: z.number().int().positive(),
   content: z.string().trim().max(3000).default(""),
   attachmentUrl: z.string().url().max(2000).optional(),
-  attachmentKind: z.literal("gif").optional(),
-}).refine(input => Boolean(input.content || (input.attachmentUrl && input.attachmentKind)), { message: "اكتب رسالة أو أرفق ملف GIF." });
+  attachmentKind: z.enum(["gif", "image", "video", "file"]).optional(),
+  attachmentMimeType: z.string().max(128).optional(),
+}).refine(input => Boolean(input.content || (input.attachmentUrl && input.attachmentKind)), { message: "اكتب رسالة أو أرفق مرفقاً." });
 
 export const chatRouter = router({
   conversations: protectedProcedure.query(({ ctx }) => db.listDirectConversations(ctx.user.id)),
@@ -53,7 +54,7 @@ export const chatRouter = router({
     .input(directMessageInputSchema)
     .mutation(async ({ ctx, input }) => {
       try {
-        return { id: await db.sendDirectMessage(ctx.user.id, input.conversationId, input.content, input.attachmentUrl && input.attachmentKind ? { url: input.attachmentUrl, kind: input.attachmentKind } : undefined) };
+        return { id: await db.sendDirectMessage(ctx.user.id, input.conversationId, input.content, input.attachmentUrl && input.attachmentKind ? { url: input.attachmentUrl, kind: input.attachmentKind, mimeType: input.attachmentMimeType } : undefined) };
       } catch (error) {
         throw mapChatError(error);
       }

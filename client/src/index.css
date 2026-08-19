@@ -77,3 +77,17 @@ button { cursor: pointer; }
 @keyframes calm-feed-pulse { 50% { transform: scale(1.36); box-shadow: 0 0 0 .45rem rgba(31, 106, 77, 0); } }
 @media (prefers-reduced-motion: no-preference) { .geometric-orb { animation: slow-drift 15s ease-in-out infinite alternate; } @keyframes slow-drift { from { transform: rotate(15deg) translate3d(0,0,0); } to { transform: rotate(24deg) translate3d(-12px,6px,0); } } }
 @media (prefers-reduced-motion: reduce) { .feed-loader, .feed-loader__dot { animation: none; } }
+
+/* Persistent light/dark theme foundation. Component-specific colors may remain branded; these rules keep the global canvas, surfaces, forms, and calm states legible. */
+.dark { color-scheme: dark; }
+.dark html, .dark body { background: #101916; color: #e5eee8; }
+.dark .bg-\[\#f5f5ef\], .dark .bg-\[\#fbfcf8\], .dark .bg-\[\#f9faf6\], .dark .bg-\[\#f8faf6\], .dark .bg-\[\#fbfcf9\] { background-color: #101916 !important; }
+.dark .bg-white { background-color: #18231f !important; }
+.dark .border-\[\#dfe5da\], .dark .border-\[\#dce1d5\], .dark .border-\[\#e7ede5\], .dark .border-\[\#e8eee7\], .dark .border-\[\#dbe4d8\] { border-color: #30433a !important; }
+.dark input, .dark textarea, .dark select { background-color: #18231f !important; color: #e5eee8 !important; border-color: #3b5146 !important; }
+.dark input::placeholder, .dark textarea::placeholder { color: #91a79b !important; }
+.dark .feed-loader { border-color: #30433a; background: linear-gradient(100deg, #18231f 0%, #22332b 45%, #18231f 100%); }
+.dark .action-button, .dark .composer-icon { color: #9fb5a8; }
+.dark .action-button:hover, .dark .composer-icon:hover { background: #243a30; color: #d6e6dc; }
+.dark [class*="text-[#"] { text-shadow: none; }
+.dark .shadow-\[0_16px_44px_rgba\(18\,62\,47\,0\.06\)\] { box-shadow: 0 16px 44px rgba(0, 0, 0, .25); }

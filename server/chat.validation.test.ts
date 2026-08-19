@@ -47,6 +47,12 @@ describe("chat input safeguards", () => {
     expect(directMessageInputSchema.safeParse({ conversationId: 1, content: "", attachmentUrl: "https://media.example.org/answer.gif" }).success).toBe(false);
   });
 
+  it("accepts image, video, and generic file message attachments", () => {
+    for (const attachmentKind of ["image", "video", "file"] as const) {
+      expect(directMessageInputSchema.safeParse({ conversationId: 1, content: "", attachmentUrl: "https://media.example.org/file", attachmentKind, attachmentMimeType: "application/octet-stream" }).success).toBe(true);
+    }
+  });
+
   it("rejects zero or negative identifiers for member-controlled deletion", async () => {
     const caller = chatRouter.createCaller(ctx);
     await expect(caller.deleteMessage({ messageId: 0 })).rejects.toMatchObject({ code: "BAD_REQUEST" });

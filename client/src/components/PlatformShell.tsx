@@ -1,5 +1,6 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
+import { useTheme } from "../contexts/ThemeContext";
 import { Input } from "@/components/ui/input";
 import {
   Bell,
@@ -13,6 +14,8 @@ import {
   Search,
   ShieldCheck,
   Palette,
+  Moon,
+  Sun,
   Sparkles,
   UserRound,
   UsersRound,
@@ -155,6 +158,7 @@ function initials(value?: string | null) {
 export default function PlatformShell({ children }: { children: ReactNode }) {
   const [location, setLocation] = useLocation();
   const { user, isAuthenticated, loading, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [mediaFilter, setMediaFilter] = useState<MediaFilter>(() => (typeof window !== "undefined" ? (localStorage.getItem("ummah-media-filter") as MediaFilter | null) || "all" : "all"));
@@ -222,6 +226,7 @@ export default function PlatformShell({ children }: { children: ReactNode }) {
           </form>
 
           <div className="ml-auto flex items-center gap-2">
+            <button type="button" onClick={toggleTheme} className="inline-flex rounded-xl border border-[#dbe4d8] p-2 text-[#537367] transition-colors hover:bg-[#edf3ed] hover:text-[#0d4937]" aria-label={theme === "dark" ? "التبديل إلى الوضع الفاتح" : "التبديل إلى الوضع الداكن"} title={theme === "dark" ? "الوضع الفاتح" : "الوضع الداكن"}>{theme === "dark" ? <Sun size={17} /> : <Moon size={17} />}</button>
             {isAuthenticated ? (
               <div className="hidden items-center gap-1 sm:flex">
                 <button
@@ -322,7 +327,7 @@ export default function PlatformShell({ children }: { children: ReactNode }) {
             </button>
           );
         })}
-        <button onClick={() => navigate("/profile")} className={`flex flex-1 flex-col items-center justify-center gap-1 text-[10px] font-bold ${location === "/profile" ? "text-[#0a4d38]" : "text-[#809288]"}`}>
+        <button type="button" onClick={toggleTheme} className="hidden rounded-xl border border-[#dbe4d8] p-2 text-[#537367] transition-colors hover:bg-[#edf3ed] hover:text-[#0d4937] sm:inline-flex" aria-label={theme === "dark" ? "التبديل إلى الوضع الفاتح" : "التبديل إلى الوضع الداكن"} title={theme === "dark" ? "الوضع الفاتح" : "الوضع الداكن"}>{theme === "dark" ? <Sun size={17} /> : <Moon size={17} />}</button><button onClick={() => navigate("/profile")} className={`flex flex-1 flex-col items-center justify-center gap-1 text-[10px] font-bold ${location === "/profile" ? "text-[#0a4d38]" : "text-[#809288]"}`}>
           <UserRound size={19} strokeWidth={location === "/profile" ? 2.5 : 1.8} />
           <span>ملفي</span>
         </button>
