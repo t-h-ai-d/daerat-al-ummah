@@ -252,11 +252,15 @@ export async function listDirectConversations(userId: number) {
       .where(eq(directMessages.conversationId, membership.conversationId))
       .orderBy(desc(directMessages.createdAt))
       .limit(1);
+    const [{ total: unreadCount }] = await db
+      .select({ total: sql<number>`count(*)` })
+      .from(directMessages)
+      .where(and(eq(directMessages.conversationId, membership.conversationId), sql`${directMessages.createdAt} > ${membership.lastReadAt ?? new Date(0)}`));
     if (conversation?.kind === "group") {
       const [{ total }] = await db.select({ total: sql<number>`count(*)` }).from(conversationParticipants).where(eq(conversationParticipants.conversationId, membership.conversationId));
-      return { conversationId: membership.conversationId, kind: conversation.kind, other: { id: conversation.id, name: conversation.name || "مجموعة الدائرة", username: `${Number(total)} أعضاء`, avatarUrl: null }, latest, updatedAt: latest?.createdAt ?? membership.joinedAt };
+      return { conversationId: membership.conversationId, kind: conversation.kind, other: { id: conversation.id, name: conversation.name || "مجموعة الدائرة", username: `${Number(total)} أعضاء`, avatarUrl: null }, latest, unreadCount: Number(unreadCount), updatedAt: latest?.createdAt ?? membership.joinedAt };
     }
-    return { conversationId: membership.conversationId, kind: conversation?.kind ?? "direct", other, latest, updatedAt: latest?.createdAt ?? membership.joinedAt };
+    return { conversationId: membership.conversationId, kind: conversation?.kind ?? "direct", other, latest, unreadCount: Number(unreadCount), updatedAt: latest?.createdAt ?? membership.joinedAt };
   }));
   return entries.sort((a, b) => Number(b.updatedAt) - Number(a.updatedAt));
 }

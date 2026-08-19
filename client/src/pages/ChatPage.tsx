@@ -327,8 +327,13 @@ export default function ChatPage() {
                           </AvatarFallback>
                         </Avatar>
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-bold text-[#23483b]">
-                            {conversation.other?.name || "عُضْوُ الدَّائِرَة"}
+                          <span className="flex items-center gap-2 truncate text-sm font-bold text-[#23483b]">
+                            <span className="truncate">{conversation.other?.name || "عُضْوُ الدَّائِرَة"}</span>
+                            {conversation.unreadCount > 0 ? (
+                              <span className="shrink-0 rounded-full bg-[#d8ead7] px-1.5 py-0.5 text-[10px] font-bold text-[#155a40]">
+                                {conversation.unreadCount > 99 ? "٩٩+" : conversation.unreadCount}
+                              </span>
+                            ) : null}
                           </span>
                           <span className="mt-0.5 block truncate text-xs text-[#769083]">
                             {conversation.latest?.content ||

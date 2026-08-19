@@ -243,3 +243,4 @@
 - [x] Move the pnpm override to pnpm-workspace.yaml and remove the deprecated package.json pnpm block so Render builds without the ignored-field warning.
 - [x] Add bounded Arabic-aware in-conversation message search with participant authorization, sender-name matching, and UI result selection for replies.
 - [x] Add a protected leave-group action with membership validation, group-only enforcement, Arabic UI control, and conversation-list refresh.
+- [x] Add lastReadAt-based unread message counts to the conversation list with Arabic capped badges and no feed-ranking behavior.
