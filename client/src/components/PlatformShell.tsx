@@ -39,6 +39,7 @@ type VisibilityFilter = "all" | "public";
 const primaryNav: NavItem[] = [
   { label: "الرئيسية", href: "/", icon: Home },
   { label: "استكشاف", href: "/explore", icon: Compass },
+  { label: "مركز المحتوى", href: "/hub", icon: Sparkles },
   { label: "المحفوظات", href: "/saved", icon: Bookmark },
   { label: "الرسائل", href: "/chat", icon: MessageCircleMore },
   { label: "المجتمعات", href: "/communities", icon: UsersRound },

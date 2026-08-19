@@ -5,6 +5,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 import AuthPage from "./pages/AuthPage";
 import ChatPage from "./pages/ChatPage";
+import ContentHubPage from "./pages/ContentHubPage";
 import { CommunitiesPage, CommunityDetailPage } from "./pages/CommunitiesPage";
 import NotFound from "./pages/NotFound";
 import PlatformPage from "./pages/PlatformPage";
@@ -19,6 +20,7 @@ function Router() {
       <Route path={"/"} component={Home} />
       <Route path={"/auth"} component={AuthPage} />
       <Route path={"/chat"} component={ChatPage} />
+      <Route path={"/hub"} component={ContentHubPage} />
       <Route path={"/communities"} component={CommunitiesPage} />
       <Route path={"/communities/:slug"} component={CommunityDetailPage} />
       <Route path="/explore"><PlatformPage kind="explore" /></Route>

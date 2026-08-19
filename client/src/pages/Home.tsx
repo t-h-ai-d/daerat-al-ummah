@@ -12,7 +12,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
 
-type Attachment = {
+export type Attachment = {
   id?: number;
   kind: "image" | "gif" | "video" | "file" | "link";
   url: string;
@@ -22,7 +22,7 @@ type Attachment = {
   scanStatus?: "pending" | "clean" | "blocked";
 };
 
-type FeedPost = {
+export type FeedPost = {
   id: number;
   author: { id: number; name: string | null; username: string | null; avatarUrl: string | null };
   title?: string | null;
@@ -49,7 +49,7 @@ function Avatar({ name }: { name?: string | null }) {
   return <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[15px] bg-[#dcece1] text-xs font-extrabold text-[#176047]">{initials(name)}</span>;
 }
 
-function AttachmentPreview({ attachment }: { attachment: Attachment }) {
+export function AttachmentPreview({ attachment }: { attachment: Attachment }) {
   if (attachment.scanStatus && attachment.scanStatus !== "clean") {
     return <div className="mt-4 flex gap-3 rounded-xl border border-[#ead7a3] bg-[#fffaf0] p-3"><span className="grid h-9 w-9 place-items-center rounded-lg bg-[#f5e7c4] text-[#896c1f]"><ShieldAlert size={17} /></span><div className="min-w-0 flex-1"><p className="truncate text-xs font-bold text-[#6f5415]">{attachment.filename || "مَلَفٌّ مُرْفَق"}</p><p className="mt-0.5 text-[11px] text-[#896c1f]">{attachment.scanStatus === "blocked" ? "حُظِرَ هذا الملف بعد الفحص الأمني." : "المَلَفُّ في الحَجْرِ الأَمْنِيِّ حتّى يكتمل الفحص."}</p></div></div>;
   }

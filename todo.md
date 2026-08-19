@@ -255,7 +255,7 @@
 - [x] Restrict new public post, image, file, and video creation to Creator Studio and replace the home composer with a clear Studio entry point.
 - [x] Add safe in-studio video preview before publishing and video playback cards after publishing, with no autoplay.
 - [x] Add regression coverage for upload failure messaging and the Studio-only publishing boundary.
-- [ ] Consolidate creator publishing, social discussion, community resources, and attachment sharing into one Arabic-first Content Hub inspired by video, social-network, and code-hosting workflows without copying brands or engagement algorithms.
+- [x] Consolidate creator publishing, social discussion, community resources, and attachment sharing into one Arabic-first Content Hub inspired by video, social-network, and code-hosting workflows without copying brands or engagement algorithms.
 - [x] Correct the misleading “large file” message for failed small-video uploads and expose a safe, actionable relay-versus-direct-upload error state.
 - [x] Remove automatic playback from the full-screen published-video viewer while retaining explicit playback controls.
 - [x] Add owner-managed pinned community resources with public/member visibility enforcement and Arabic RTL UI.
