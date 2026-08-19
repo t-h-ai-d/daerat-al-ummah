@@ -231,7 +231,7 @@
 - [x] Complete the complex-platform integration map across content, communities, chat, discovery, creator tools, privacy, safety, and notifications.
 - [ ] Add richer community structures: channels, subcommunities, pinned resources, membership rules, and community navigation.
 - [ ] Add richer social graph controls: follows, friends, mentions, tags, blocks, restricted members, reposts, shares, and saved collections.
-- [ ] Add richer messaging: replies, message search, read states, and participant controls.
+- [ ] Add richer messaging: participant controls.
 - [ ] Add finite Arabic-aware search and discovery filters across posts, members, communities, and attachments.
 - [ ] Add creator workflow tools: drafts, collections, scheduled publishing, media metadata, and real analytics.
 - [ ] Add privacy and safety center controls with reports, anti-spam actions, attachment scanning states, and browser notification preferences.
@@ -242,3 +242,4 @@
 - [x] Add protected message replies with same-conversation validation, Arabic reply UI, cancel action, schema migration, and contract coverage.
 - [x] Move the pnpm override to pnpm-workspace.yaml and remove the deprecated package.json pnpm block so Render builds without the ignored-field warning.
 - [x] Add bounded Arabic-aware in-conversation message search with participant authorization, sender-name matching, and UI result selection for replies.
+- [x] Add a protected leave-group action with membership validation, group-only enforcement, Arabic UI control, and conversation-list refresh.

@@ -87,4 +87,13 @@ export const chatRouter = router({
         throw mapChatError(error);
       }
     }),
+  leaveGroup: protectedProcedure
+    .input(z.object({ conversationId: z.number().int().positive() }))
+    .mutation(async ({ ctx, input }) => {
+      try {
+        return await db.leaveGroupConversation(ctx.user.id, input.conversationId);
+      } catch (error) {
+        throw mapChatError(error);
+      }
+    }),
 });

@@ -11,6 +11,7 @@ import { trpc } from "@/lib/trpc";
 import {
   ImagePlus,
   Loader2,
+  LogOut,
   MessageCircleMore,
   Search,
   Send,
@@ -136,6 +137,17 @@ export default function ChatPage() {
         utils.chat.conversations.invalidate(),
       ]);
       toast.success("حُذِفَت المحادثة من قائمتك فقط.");
+    },
+    onError: error => toast.error(error.message),
+  });
+  const leaveGroup = trpc.chat.leaveGroup.useMutation({
+    onSuccess: async () => {
+      setActiveConversationId(null);
+      await Promise.all([
+        utils.chat.messages.invalidate(),
+        utils.chat.conversations.invalidate(),
+      ]);
+      toast.success("غادَرْتَ المجموعة.");
     },
     onError: error => toast.error(error.message),
   });
@@ -375,12 +387,24 @@ export default function ChatPage() {
                   />
                 </div>
               )}
+              {activeConversationId && selected?.kind === "group" && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => leaveGroup.mutate({ conversationId: activeConversationId })}
+                  disabled={leaveGroup.isPending}
+                  className="rounded-xl border-[#d8e5d8] text-xs text-[#467566] hover:bg-[#edf5eb]"
+                >
+                  <LogOut size={15} />
+                  مُغادَرَةُ المجموعة
+                </Button>
+              )}
               {activeConversationId && (
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => eraseConversation(activeConversationId)}
-                  disabled={deleteConversation.isPending}
+                  disabled={deleteConversation.isPending || leaveGroup.isPending}
                   className="rounded-xl border-[#ecd8d1] text-xs text-[#9a503d] hover:bg-[#fff4f1]"
                 >
                   <Trash2 size={15} />

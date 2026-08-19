@@ -254,9 +254,9 @@ export async function listDirectConversations(userId: number) {
       .limit(1);
     if (conversation?.kind === "group") {
       const [{ total }] = await db.select({ total: sql<number>`count(*)` }).from(conversationParticipants).where(eq(conversationParticipants.conversationId, membership.conversationId));
-      return { conversationId: membership.conversationId, other: { id: conversation.id, name: conversation.name || "مجموعة الدائرة", username: `${Number(total)} أعضاء`, avatarUrl: null }, latest, updatedAt: latest?.createdAt ?? membership.joinedAt };
+      return { conversationId: membership.conversationId, kind: conversation.kind, other: { id: conversation.id, name: conversation.name || "مجموعة الدائرة", username: `${Number(total)} أعضاء`, avatarUrl: null }, latest, updatedAt: latest?.createdAt ?? membership.joinedAt };
     }
-    return { conversationId: membership.conversationId, other, latest, updatedAt: latest?.createdAt ?? membership.joinedAt };
+    return { conversationId: membership.conversationId, kind: conversation?.kind ?? "direct", other, latest, updatedAt: latest?.createdAt ?? membership.joinedAt };
   }));
   return entries.sort((a, b) => Number(b.updatedAt) - Number(a.updatedAt));
 }
@@ -317,6 +317,15 @@ export async function deleteDirectConversation(userId: number, conversationId: n
   await requireConversationParticipant(userId, conversationId);
   await db.delete(conversationParticipants).where(and(eq(conversationParticipants.userId, userId), eq(conversationParticipants.conversationId, conversationId)));
   return { deleted: true as const };
+}
+
+export async function leaveGroupConversation(userId: number, conversationId: number) {
+  const db = await requireDb();
+  await requireConversationParticipant(userId, conversationId);
+  const [conversation] = await db.select({ kind: conversations.kind }).from(conversations).where(eq(conversations.id, conversationId)).limit(1);
+  if (!conversation || conversation.kind !== "group") throw new Error("يمكن مغادرة مجموعات الدردشة فقط.");
+  await db.delete(conversationParticipants).where(and(eq(conversationParticipants.userId, userId), eq(conversationParticipants.conversationId, conversationId)));
+  return { left: true as const };
 }
 
 export async function updateProfile(userId: number, data: { username?: string; avatarUrl?: string; bio?: string; country?: string; madhhabPreference?: string; profileVisibility?: "public" | "friends" }) {
