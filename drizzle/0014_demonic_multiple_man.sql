@@ -1,0 +1,1 @@
+ALTER TABLE `directMessages` ADD `replyToMessageId` int;

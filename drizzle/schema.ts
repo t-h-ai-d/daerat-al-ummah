@@ -114,6 +114,7 @@ export const directMessages = mysqlTable(
     attachmentUrl: text("attachmentUrl"),
     attachmentKind: mysqlEnum("attachmentKind", ["gif", "image", "video", "file"]),
     attachmentMimeType: varchar("attachmentMimeType", { length: 128 }),
+    replyToMessageId: int("replyToMessageId"),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
   },
   table => [index("messages_conversation_created_idx").on(table.conversationId, table.createdAt)],

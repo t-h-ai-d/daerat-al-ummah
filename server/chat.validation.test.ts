@@ -53,6 +53,11 @@ describe("chat input safeguards", () => {
     }
   });
 
+  it("accepts a positive reply reference and rejects zero", () => {
+    expect(directMessageInputSchema.safeParse({ conversationId: 1, content: "رد محترم", replyToMessageId: 22 }).success).toBe(true);
+    expect(directMessageInputSchema.safeParse({ conversationId: 1, content: "رد محترم", replyToMessageId: 0 }).success).toBe(false);
+  });
+
   it("rejects zero or negative identifiers for member-controlled deletion", async () => {
     const caller = chatRouter.createCaller(ctx);
     await expect(caller.deleteMessage({ messageId: 0 })).rejects.toMatchObject({ code: "BAD_REQUEST" });

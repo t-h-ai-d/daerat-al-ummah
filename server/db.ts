@@ -274,10 +274,14 @@ export async function listDirectMessages(userId: number, conversationId: number)
     .limit(100);
 }
 
-export async function sendDirectMessage(userId: number, conversationId: number, content: string, attachment?: { url: string; kind: "gif" | "image" | "video" | "file"; mimeType?: string }) {
+export async function sendDirectMessage(userId: number, conversationId: number, content: string, attachment?: { url: string; kind: "gif" | "image" | "video" | "file"; mimeType?: string }, replyToMessageId?: number) {
   const db = await requireDb();
   await requireConversationParticipant(userId, conversationId);
-  const created = await db.insert(directMessages).values({ conversationId, senderId: userId, content, attachmentUrl: attachment?.url ?? null, attachmentKind: attachment?.kind ?? null, attachmentMimeType: attachment?.mimeType ?? null });
+  if (replyToMessageId) {
+    const [original] = await db.select({ id: directMessages.id }).from(directMessages).where(and(eq(directMessages.id, replyToMessageId), eq(directMessages.conversationId, conversationId))).limit(1);
+    if (!original) throw new Error("لا يمكن الرد على رسالة من محادثة أخرى.");
+  }
+  const created = await db.insert(directMessages).values({ conversationId, senderId: userId, content, attachmentUrl: attachment?.url ?? null, attachmentKind: attachment?.kind ?? null, attachmentMimeType: attachment?.mimeType ?? null, replyToMessageId: replyToMessageId ?? null });
   const recipients = await db.select({ userId: conversationParticipants.userId }).from(conversationParticipants).where(and(eq(conversationParticipants.conversationId, conversationId), ne(conversationParticipants.userId, userId)));
   await Promise.all(recipients.map(recipient => deliverBrowserPush(recipient.userId, { title: "رسالة خاصة جديدة", body: "لديك رسالة جديدة في دائرة الأمة.", url: "/chat", tag: `message-${conversationId}` })));
   await notifyMentions(userId, content, {});

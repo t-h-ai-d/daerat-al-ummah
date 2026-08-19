@@ -143,17 +143,17 @@
 - [ ] Verify avatar and post attachment uploads on the live Render and Backblaze B2 deployment after redeployment.
 - [ ] Reproduce the reported live file-upload failure with a safe small test attachment after the latest Render deployment and capture the exact server response.
 - [ ] Verify Backblaze B2 storage credentials, endpoint, bucket, and public-object delivery on Render without exposing secret values.
-- [ ] Replace Base64-only attachment uploads so large videos upload directly to Backblaze B2 without failing the Render request body limit.
-- [ ] Define and enforce separate safe limits for images, documents, and video files, with clear Arabic feedback before upload begins.
-- [ ] Broaden accepted file types safely while rejecting executable and otherwise dangerous attachment formats.
-- [ ] Integrate malware scanning for uploaded attachments without exposing member files or third-party credentials in the browser.
-- [ ] Show clear Arabic image, GIF, video, document, upload-progress, and scan-status indicators in post attachments.
+- [x] Replace Base64-only attachment uploads so large videos upload directly to Backblaze B2 without failing the Render request body limit.
+- [x] Use one shared safe attachment limit for images, documents, and video instead of separate type-specific limits, with clear Arabic feedback before upload begins.
+- [x] Broaden accepted file types safely while rejecting executable and otherwise dangerous attachment formats.
+- [x] Integrate malware scanning for uploaded attachments without exposing member files or third-party credentials in the browser.
+- [x] Show clear Arabic image, GIF, video, document, upload-progress, and scan-status indicators in post attachments.
 - [ ] Prioritize resolution of the reported video `Failed to fetch` and `Invalid URL` failure before unrelated post-control repairs.
-- [ ] Support the widest safe practical set of attachment formats rather than a fixed document allowlist, while blocking executable and script payloads.
-- [ ] Replace the 50 MB Base64 request ceiling with direct-storage uploads and a much larger practical attachment limit.
-- [ ] Accept executable attachments only into a non-downloadable quarantine state until an external antivirus scan returns a clean result.
-- [ ] Surface pending, clean, and blocked scan states for every attachment without claiming that antivirus scanning is infallible.
-- [ ] Enforce one explicitly stated shared maximum size per attachment regardless of image, video, document, archive, or executable type.
+- [x] Support the widest safe practical set of attachment formats rather than a fixed document allowlist, while blocking executable and script payloads.
+- [x] Replace the 50 MB Base64 request ceiling with direct-storage uploads and a much larger practical attachment limit.
+- [x] Accept executable attachments only into a non-downloadable quarantine state until an external antivirus scan returns a clean result.
+- [x] Surface pending, clean, and blocked scan states for every attachment without claiming that antivirus scanning is infallible.
+- [x] Enforce one explicitly stated shared maximum size per attachment regardless of image, video, document, archive, or executable type.
 - [x] Replace Creator Studio’s remaining Base64 attachment path and 50 MB wording with the same direct-upload shared-limit workflow used by home and communities.
 - [x] Remove the remaining mailto report link from the member-facing rules page and describe the in-app server-delivered report flow.
 - [x] Replace the community attachment upload fallback with explicit Arabic error feedback.
@@ -239,3 +239,4 @@
 - [ ] Run full RTL, upload, moderation, and production-build verification after the complex integration.
 - [x] Add persistent Arabic light/dark theme switching with accessible contrast across navigation, feeds, composers, chat, communities, studio, and empty states.
 - [x] Remove unwanted Cloudflare deployment, worker, Pages, DNS, and documentation references from the project and GitHub workflow while preserving Render deployment.
+- [x] Add protected message replies with same-conversation validation, Arabic reply UI, cancel action, schema migration, and contract coverage.

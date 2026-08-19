@@ -19,6 +19,7 @@ export const directMessageInputSchema = z.object({
   attachmentUrl: z.string().url().max(2000).optional(),
   attachmentKind: z.enum(["gif", "image", "video", "file"]).optional(),
   attachmentMimeType: z.string().max(128).optional(),
+  replyToMessageId: z.number().int().positive().optional(),
 }).refine(input => Boolean(input.content || (input.attachmentUrl && input.attachmentKind)), { message: "اكتب رسالة أو أرفق مرفقاً." });
 
 export const chatRouter = router({
@@ -54,7 +55,7 @@ export const chatRouter = router({
     .input(directMessageInputSchema)
     .mutation(async ({ ctx, input }) => {
       try {
-        return { id: await db.sendDirectMessage(ctx.user.id, input.conversationId, input.content, input.attachmentUrl && input.attachmentKind ? { url: input.attachmentUrl, kind: input.attachmentKind, mimeType: input.attachmentMimeType } : undefined) };
+        return { id: await db.sendDirectMessage(ctx.user.id, input.conversationId, input.content, input.attachmentUrl && input.attachmentKind ? { url: input.attachmentUrl, kind: input.attachmentKind, mimeType: input.attachmentMimeType } : undefined, input.replyToMessageId) };
       } catch (error) {
         throw mapChatError(error);
       }
