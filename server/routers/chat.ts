@@ -51,6 +51,15 @@ export const chatRouter = router({
         throw mapChatError(error);
       }
     }),
+  search: protectedProcedure
+    .input(z.object({ conversationId: z.number().int().positive(), query: z.string().trim().min(1).max(120) }))
+    .query(async ({ ctx, input }) => {
+      try {
+        return await db.searchDirectMessages(ctx.user.id, input.conversationId, input.query);
+      } catch (error) {
+        throw mapChatError(error);
+      }
+    }),
   send: protectedProcedure
     .input(directMessageInputSchema)
     .mutation(async ({ ctx, input }) => {

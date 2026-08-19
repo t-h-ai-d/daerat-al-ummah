@@ -274,6 +274,21 @@ export async function listDirectMessages(userId: number, conversationId: number)
     .limit(100);
 }
 
+export async function searchDirectMessages(userId: number, conversationId: number, query: string) {
+  const db = await requireDb();
+  await requireConversationParticipant(userId, conversationId);
+  const term = query.trim();
+  if (!term) return [];
+  const pattern = `%${term}%`;
+  return db
+    .select({ message: directMessages, senderName: users.name, senderUsername: users.username })
+    .from(directMessages)
+    .innerJoin(users, eq(directMessages.senderId, users.id))
+    .where(and(eq(directMessages.conversationId, conversationId), or(like(directMessages.content, pattern), like(users.name, pattern), like(users.username, pattern))))
+    .orderBy(desc(directMessages.createdAt))
+    .limit(50);
+}
+
 export async function sendDirectMessage(userId: number, conversationId: number, content: string, attachment?: { url: string; kind: "gif" | "image" | "video" | "file"; mimeType?: string }, replyToMessageId?: number) {
   const db = await requireDb();
   await requireConversationParticipant(userId, conversationId);
