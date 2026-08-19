@@ -258,3 +258,4 @@
 - [ ] Consolidate creator publishing, social discussion, community resources, and attachment sharing into one Arabic-first Content Hub inspired by video, social-network, and code-hosting workflows without copying brands or engagement algorithms.
 - [x] Correct the misleading “large file” message for failed small-video uploads and expose a safe, actionable relay-versus-direct-upload error state.
 - [x] Remove automatic playback from the full-screen published-video viewer while retaining explicit playback controls.
+- [x] Add owner-managed pinned community resources with public/member visibility enforcement and Arabic RTL UI.

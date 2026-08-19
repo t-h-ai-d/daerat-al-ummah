@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { browserPushSubscriptionTableSql, independentDatabaseTlsOptions, independentSchemaBootstrapStatements, missingIndependentSchemaCompatibilityColumns } from "./productionSchema";
 
 describe("independent production schema guard", () => {
@@ -29,6 +31,13 @@ describe("independent production schema guard", () => {
       expect.stringContaining("CREATE TABLE IF NOT EXISTS `posts`"),
       expect.stringContaining("CREATE TABLE IF NOT EXISTS `browserPushSubscriptions`"),
     ]));
+  });
+
+  it("includes owner-managed community resources in the independent bootstrap", () => {
+    const bootstrap = readFileSync(resolve(process.cwd(), "docs/independent-schema-bootstrap.sql"), "utf8");
+    expect(bootstrap).toContain("CREATE TABLE IF NOT EXISTS `communityResources`");
+    expect(bootstrap).toContain("community_resources_community_created_idx");
+    expect(bootstrap).toContain("REFERENCES `communities` (`id`)");
   });
 
   it("adds only legacy account, post, and attachment-security columns that are absent", () => {

@@ -96,6 +96,21 @@ CREATE TABLE IF NOT EXISTS `communityMembers` (
   CONSTRAINT `communityMembers_userId_users_id_fk` FOREIGN KEY (`userId`) REFERENCES `users` (`id`) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS `communityResources` (
+  `id` int AUTO_INCREMENT NOT NULL,
+  `communityId` int NOT NULL,
+  `authorId` int NOT NULL,
+  `title` varchar(180) NOT NULL,
+  `description` varchar(1000),
+  `url` text NOT NULL,
+  `kind` enum('link','document','video') NOT NULL DEFAULT 'link',
+  `createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `community_resources_community_created_idx` (`communityId`,`createdAt`),
+  CONSTRAINT `communityResources_communityId_communities_id_fk` FOREIGN KEY (`communityId`) REFERENCES `communities` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `communityResources_authorId_users_id_fk` FOREIGN KEY (`authorId`) REFERENCES `users` (`id`) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS `conversationParticipants` (
   `id` int AUTO_INCREMENT NOT NULL,
   `conversationId` int NOT NULL,

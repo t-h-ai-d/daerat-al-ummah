@@ -19,6 +19,7 @@ import {
   browserPushSubscriptions,
   communities,
   communityMembers,
+  communityResources,
   conversationParticipants,
   conversations,
   directMessages,
@@ -373,6 +374,12 @@ async function assertCommunityMembership(userId: number, communityId: number) {
   return membership;
 }
 
+async function assertCommunityOwnership(userId: number, communityId: number) {
+  const membership = await assertCommunityMembership(userId, communityId);
+  if (membership.role !== "owner") throw new Error("إدارة الموارد المثبتة متاحة لمالك هذه المساحة فقط.");
+  return membership;
+}
+
 export async function createCommunity(userId: number, data: { name: string; slug: string; description: string; kind: "community" | "group" | "channel"; parentId?: number; visibility: "public" | "members" }) {
   const db = await requireDb();
   let parent: typeof communities.$inferSelect | undefined;
@@ -449,6 +456,41 @@ export async function leaveCommunity(userId: number, communityId: number) {
   const db = await requireDb();
   await db.delete(communityMembers).where(eq(communityMembers.id, membership.id));
   return { joined: false as const };
+}
+
+export async function listCommunityResources(viewerId: number | undefined, communityId: number) {
+  await assertCommunityAccess(viewerId, communityId);
+  const db = await requireDb();
+  return db.select().from(communityResources).where(eq(communityResources.communityId, communityId)).orderBy(desc(communityResources.createdAt));
+}
+
+export async function createCommunityResource(userId: number, data: {
+  communityId: number;
+  title: string;
+  description?: string;
+  url: string;
+  kind: "link" | "document" | "video";
+}) {
+  await assertCommunityOwnership(userId, data.communityId);
+  const db = await requireDb();
+  const [created] = await db.insert(communityResources).values({
+    communityId: data.communityId,
+    authorId: userId,
+    title: data.title,
+    description: data.description || null,
+    url: data.url,
+    kind: data.kind,
+  });
+  return { resourceId: Number(created.insertId) };
+}
+
+export async function deleteCommunityResource(userId: number, resourceId: number) {
+  const db = await requireDb();
+  const [resource] = await db.select().from(communityResources).where(eq(communityResources.id, resourceId)).limit(1);
+  if (!resource) throw new Error("هذا المورد لم يعد موجودًا.");
+  await assertCommunityOwnership(userId, resource.communityId);
+  await db.delete(communityResources).where(eq(communityResources.id, resourceId));
+  return { deleted: true as const, communityId: resource.communityId };
 }
 
 export type AttachmentInput = {

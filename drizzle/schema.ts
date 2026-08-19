@@ -74,6 +74,26 @@ export const communityMembers = mysqlTable(
   ],
 );
 
+/** Owner-curated links, documents, and videos shown before the community feed. */
+export const communityResources = mysqlTable(
+  "communityResources",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    communityId: int("communityId")
+      .notNull()
+      .references(() => communities.id, { onDelete: "cascade" }),
+    authorId: int("authorId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    title: varchar("title", { length: 180 }).notNull(),
+    description: varchar("description", { length: 1000 }),
+    url: text("url").notNull(),
+    kind: mysqlEnum("kind", ["link", "document", "video"]).default("link").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  table => [index("community_resources_community_created_idx").on(table.communityId, table.createdAt)],
+);
+
 export const conversations = mysqlTable("conversations", {
   id: int("id").autoincrement().primaryKey(),
   kind: mysqlEnum("kind", ["direct", "group"]).default("direct").notNull(),

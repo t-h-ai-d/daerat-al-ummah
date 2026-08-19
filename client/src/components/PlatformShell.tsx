@@ -7,13 +7,19 @@ import {
   BookOpen,
   Bookmark,
   Compass,
+  FileText,
   Home,
+  Link2,
+  Loader2,
   LogOut,
   Menu,
   MessageCircleMore,
+  Plus,
   Search,
   ShieldCheck,
   Palette,
+  Trash2,
+  Video,
   Moon,
   Sun,
   Sparkles,
@@ -22,6 +28,8 @@ import {
   X,
 } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
+import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
 import { useLocation } from "wouter";
 
 type NavItem = { label: string; href: string; icon: typeof Home };
@@ -153,6 +161,26 @@ function initials(value?: string | null) {
     .map(part => part[0])
     .join("")
     .toUpperCase();
+}
+
+function CommunityResourceStrip({ slug }: { slug: string }) {
+  const { user } = useAuth();
+  const utils = trpc.useUtils();
+  const community = trpc.social.community.useQuery({ slug });
+  const communityId = community.data?.community.id ?? 0;
+  const resources = trpc.social.communityResources.useQuery({ communityId }, { enabled: Boolean(communityId) });
+  const isOwner = community.data?.membership?.role === "owner";
+  const [showForm, setShowForm] = useState(false);
+  const [title, setTitle] = useState("");
+  const [url, setUrl] = useState("");
+  const [description, setDescription] = useState("");
+  const [kind, setKind] = useState<"link" | "document" | "video">("link");
+  const create = trpc.social.createCommunityResource.useMutation({ onSuccess: () => { setTitle(""); setUrl(""); setDescription(""); setKind("link"); setShowForm(false); void utils.social.communityResources.invalidate({ communityId }); toast.success("ثُبّت المورد في هذه المساحة."); }, onError: error => toast.error(error.message) });
+  const remove = trpc.social.deleteCommunityResource.useMutation({ onSuccess: () => { void utils.social.communityResources.invalidate({ communityId }); toast.success("حُذف المورد المثبت."); }, onError: error => toast.error(error.message) });
+  const icon = (resourceKind: "link" | "document" | "video") => resourceKind === "video" ? <Video size={16} /> : resourceKind === "document" ? <FileText size={16} /> : <Link2 size={16} />;
+  const label = (resourceKind: "link" | "document" | "video") => resourceKind === "video" ? "فيديو" : resourceKind === "document" ? "وثيقة" : "رابط";
+  if (!community.data || (!resources.data?.length && !isOwner)) return null;
+  return <section className="mx-auto mt-6 w-full max-w-[1120px] px-4 sm:px-6 lg:px-8"><div className="rounded-[24px] border border-[#dce5da] bg-white p-5 shadow-[0_10px_24px_rgba(16,61,46,0.035)]"><div className="flex flex-wrap items-start justify-between gap-3"><div><div className="flex items-center gap-2"><span className="grid h-9 w-9 place-items-center rounded-xl bg-[#e5efe5] text-[#176047]"><BookOpen size={18} /></span><h2 className="font-display text-lg font-semibold text-[#244c3e]">موارد مثبتة</h2></div><p className="mt-2 text-xs leading-5 text-[#738a7f]">روابط ووثائق ودروس مرجعية اختارها مالك المساحة؛ ليست توصيات قهرية ولا خلاصة لا تنتهي.</p></div>{isOwner && <Button type="button" variant="outline" onClick={() => setShowForm(value => !value)} className="rounded-xl border-[#c9d9c8] bg-white text-xs text-[#176047]"><Plus size={15} />إضافة مورد</Button>}</div>{isOwner && showForm && <form onSubmit={event => { event.preventDefault(); create.mutate({ communityId, title: title.trim(), description: description.trim() || undefined, url: url.trim(), kind }); }} className="mt-4 grid gap-3 rounded-2xl border border-[#dce5da] bg-[#f8fbf7] p-4"><Input required value={title} onChange={event => setTitle(event.target.value)} minLength={3} maxLength={180} placeholder="عنوان المورد" className="h-10 rounded-xl border-[#cfdfd0] text-right" /><Input required value={url} onChange={event => setUrl(event.target.value)} type="url" dir="ltr" placeholder="https://…" className="h-10 rounded-xl border-[#cfdfd0] text-left" /><textarea value={description} onChange={event => setDescription(event.target.value)} maxLength={1000} placeholder="وصف قصير اختياري" className="min-h-20 w-full rounded-xl border border-[#cfdfd0] bg-white p-3 text-right text-sm outline-none focus:border-[#557c6b]" /><div className="flex flex-wrap items-center justify-between gap-3"><label className="text-xs font-bold text-[#47685b]">النوع <select value={kind} onChange={event => setKind(event.target.value as "link" | "document" | "video")} className="mr-2 h-9 rounded-lg border border-[#cfdfd0] bg-white px-2"><option value="link">رابط</option><option value="document">وثيقة</option><option value="video">فيديو</option></select></label><div className="flex gap-2"><Button type="button" variant="outline" onClick={() => setShowForm(false)} className="rounded-xl text-xs">إلغاء</Button><Button disabled={create.isPending || !title.trim() || !url.trim()} className="rounded-xl bg-[#0d4937] text-xs hover:bg-[#176047]">{create.isPending && <Loader2 className="animate-spin" size={14} />}تثبيت المورد</Button></div></div></form>}{resources.isLoading ? <p className="mt-4 flex items-center gap-2 text-xs text-[#71887c]"><Loader2 className="animate-spin" size={15} />يجري تحميل الموارد…</p> : resources.data?.length ? <div className="mt-4 grid gap-3 sm:grid-cols-2">{resources.data.map(resource => <article key={resource.id} className="rounded-2xl border border-[#e0e9df] bg-[#fbfcf9] p-4"><div className="flex items-start justify-between gap-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#e4efe4] text-[#2a6651]">{icon(resource.kind)}</span><div className="min-w-0 flex-1"><div className="flex items-start justify-between gap-2"><h3 className="line-clamp-2 text-sm font-extrabold text-[#244c3e]">{resource.title}</h3>{isOwner && <button type="button" onClick={() => { if (window.confirm(`حذف المورد «${resource.title}»؟`)) remove.mutate({ resourceId: resource.id }); }} disabled={remove.isPending} className="rounded-lg p-1 text-[#7b9688] hover:bg-white hover:text-[#a14f36]" aria-label={`حذف ${resource.title}`}><Trash2 size={15} /></button>}</div><span className="mt-2 inline-flex rounded-full bg-[#edf5ec] px-2 py-0.5 text-[10px] font-extrabold text-[#267052]">{label(resource.kind)}</span></div></div>{resource.description && <p className="mt-3 line-clamp-3 text-xs leading-6 text-[#678075]">{resource.description}</p>}<a href={resource.url} target="_blank" rel="noreferrer" className="mt-3 flex items-center gap-1 text-xs font-bold text-[#176047] hover:underline">فتح المورد <Link2 size={13} /></a></article>)}</div> : isOwner ? <p className="mt-4 rounded-2xl bg-[#f6f8f4] p-4 text-sm text-[#71887c]">لا توجد موارد مثبتة بعد. أضف رابطًا أو وثيقة أو درس فيديو يبدأ منه الأعضاء.</p> : null}</div></section>;
 }
 
 export default function PlatformShell({ children }: { children: ReactNode }) {
@@ -313,7 +341,7 @@ export default function PlatformShell({ children }: { children: ReactNode }) {
           </div>
         </aside>
 
-        <main className="min-w-0 flex-1 pb-20 lg:pb-0">{children}</main>
+        <main className="min-w-0 flex-1 pb-20 lg:pb-0">{location.match(/^\/communities\/([^/]+)$/) && <CommunityResourceStrip slug={decodeURIComponent(location.match(/^\/communities\/([^/]+)$/)?.[1] ?? "")} />}{children}</main>
       </div>
 
       <nav className="fixed inset-x-0 bottom-0 z-40 flex h-[67px] border-t border-[#dfe5da] bg-[#fbfcf8]/95 px-3 pb-[max(0px,env(safe-area-inset-bottom))] backdrop-blur-xl lg:hidden">

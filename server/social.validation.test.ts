@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
-import { attachmentSchema, communityKindSchema, communitySlugSchema, createPostInputSchema, reportCategorySchema } from "./routers/social";
+import { attachmentSchema, communityKindSchema, communityResourceKindSchema, communityResourceUrlSchema, communitySlugSchema, createPostInputSchema, reportCategorySchema } from "./routers/social";
 import { assertPostOwnership, assertReportablePost, interleaveFeedAuthors } from "./db";
 import { attachmentScanStatus, isAttachmentDownloadAllowed, requiresAttachmentQuarantine } from "./attachmentSecurity";
 import { readFileSync } from "node:fs";
@@ -71,6 +71,20 @@ describe("social input safeguards", () => {
   it("accepts channels as a community type while rejecting unknown types", () => {
     expect(communityKindSchema.safeParse("channel").success).toBe(true);
     expect(communityKindSchema.safeParse("forum").success).toBe(false);
+  });
+
+  it("exposes owner-managed pinned community resources and rejects unsafe resource input", async () => {
+    const socialProcedures = appRouter._def.procedures;
+    expect("social.communityResources" in socialProcedures).toBe(true);
+    expect("social.createCommunityResource" in socialProcedures).toBe(true);
+    expect("social.deleteCommunityResource" in socialProcedures).toBe(true);
+    expect(communityResourceKindSchema.safeParse("video").success).toBe(true);
+    expect(communityResourceKindSchema.safeParse("archive").success).toBe(false);
+    expect(communityResourceUrlSchema.safeParse("https://example.org/lesson").success).toBe(true);
+    expect(communityResourceUrlSchema.safeParse("javascript:alert(1)").success).toBe(false);
+    const caller = appRouter.createCaller(createAuthenticatedContext());
+    await expect(caller.social.createCommunityResource({ communityId: 0, title: "مورد نافع", url: "https://example.org", kind: "link" })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    await expect(caller.social.deleteCommunityResource({ resourceId: 0 })).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
 
   it("accepts only the four report categories used by the backend report form", () => {
