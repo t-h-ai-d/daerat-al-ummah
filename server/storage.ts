@@ -7,7 +7,9 @@ import { attachmentScanStatus, isAttachmentDownloadAllowed, requiresAttachmentQu
 import { getLocalSessionUser } from "./localAuth";
 
 const SIGNED_URL_TTL_SECONDS = 60 * 10;
-export const APP_RELAY_MAX_BYTES = 25_000_000;
+// Typical short videos remain on the authenticated application relay, avoiding
+// browser-to-bucket CORS dependency. Larger uploads use a presigned B2 URL.
+export const APP_RELAY_MAX_BYTES = 100_000_000;
 
 export type ObjectStorageConfig = {
   endpoint: string;
@@ -114,6 +116,20 @@ export function buildRelayAttachmentMetadata(filename: string, mimeType: string,
   };
 }
 
+export function relayStorageFailure(error: unknown): { code: "storage_configuration" | "storage_unavailable"; message: string } {
+  const rawMessage = error instanceof Error ? error.message : "";
+  if (/Object storage is not configured|Object storage endpoint is not a valid HTTP URL/i.test(rawMessage)) {
+    return {
+      code: "storage_configuration",
+      message: "خدمة رفع الملفات غير مُعَدّة على الخادم الآن. لن يُنشَر أيّ محتوى حتى يُستكمل إعداد التخزين.",
+    };
+  }
+  return {
+    code: "storage_unavailable",
+    message: "تعذّر حفظ الملف في التخزين الآن. لم يُنشَر أيّ محتوى؛ أعد المحاولة بعد لحظة.",
+  };
+}
+
 function uploadRouteForKey(key: string): string {
   return `/uploads/${key.split("/").map(encodeURIComponent).join("/")}`;
 }
@@ -212,9 +228,10 @@ export function registerObjectStorageRoutes(app: Express) {
       const stored = await storagePut(`${user.id}/${metadata.storagePrefix}/${safeAttachmentFilename(filename)}`, req.body, mimeType);
       res.status(201).json({ ...stored, kind: metadata.kind, filename: metadata.filename, mimeType: metadata.mimeType, sizeBytes: metadata.sizeBytes, scanStatus: metadata.scanStatus });
     } catch (error) {
+      const detail = relayStorageFailure(error);
       const message = error instanceof Error ? error.message : "";
-      console.error("[AttachmentRelay] upload failed", { message });
-      res.status(503).json({ message: "تعذّر حفظ الملف الآن. لم يُنشَر أيّ محتوى؛ أعد المحاولة بعد لحظة." });
+      console.error("[AttachmentRelay] upload failed", { code: detail.code, message });
+      res.status(503).json(detail);
     }
   });
 

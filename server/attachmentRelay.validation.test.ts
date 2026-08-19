@@ -11,6 +11,6 @@ describe("attachment relay contract", () => {
   it("quarantines risky attachments while preserving the shared relay ceiling", () => {
     const metadata = buildRelayAttachmentMetadata("tool.exe", "application/octet-stream", 512);
     expect(metadata).toMatchObject({ kind: "file", scanStatus: "pending", storagePrefix: "quarantine" });
-    expect(APP_RELAY_MAX_BYTES).toBe(25_000_000);
+    expect(APP_RELAY_MAX_BYTES).toBe(100_000_000);
   });
 });

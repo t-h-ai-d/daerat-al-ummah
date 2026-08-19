@@ -14,10 +14,18 @@ export type PreparedAttachmentUpload = Omit<UploadedAttachment, "storageKey"> & 
   sharedLimitBytes?: number;
 };
 
-/** Small files use the app relay so member browsers never depend on bucket CORS. */
-export const APP_RELAY_MAX_BYTES = 25_000_000;
+/**
+ * Files up to 100 MB use the application relay. This deliberately covers the
+ * usual short video so browsers do not depend on a bucket CORS rule. Larger
+ * uploads keep using a short-lived, direct-to-storage URL.
+ */
+export const APP_RELAY_MAX_BYTES = 100_000_000;
 
 const safeUploadMessage = "لم يكتمل رفع الملف الآن. لم يُنشَر أيّ محتوى؛ أعد المحاولة بعد لحظة.";
+
+export function attachmentUploadRoute(sizeBytes: number): "relay" | "direct" {
+  return sizeBytes <= APP_RELAY_MAX_BYTES ? "relay" : "direct";
+}
 
 function asUploadedAttachment(value: unknown): UploadedAttachment {
   const attachment = value as Partial<UploadedAttachment>;
@@ -82,22 +90,19 @@ async function uploadDirectly(
 export async function uploadAttachmentSafely(
   file: File,
   prepareDirectUpload: (input: { filename: string; mimeType: string; sizeBytes: number }) => Promise<PreparedAttachmentUpload>,
-): Promise<UploadedAttachment> {
+):
+Promise<UploadedAttachment> {
   const mimeType = file.type || "application/octet-stream";
-  if (file.size <= APP_RELAY_MAX_BYTES) {
-    try {
-      return await uploadThroughApp(file, mimeType);
-    } catch {
-      // A direct B2 URL remains a valid second route if the app relay is busy.
-    }
+  if (attachmentUploadRoute(file.size) === "relay") {
+    // Do not hide a relay/storage configuration error behind a second browser
+    // upload that may fail CORS. The relay gives the member a useful Arabic
+    // response and handles typical video uploads without B2 browser CORS.
+    return uploadThroughApp(file, mimeType);
   }
 
   try {
     return await uploadDirectly(file, mimeType, prepareDirectUpload);
   } catch {
-    throw new Error(file.size > APP_RELAY_MAX_BYTES
-      ? "لم يكتمل رفع الملف الكبير الآن. لم يُنشَر أيّ محتوى؛ تحقّق من اتصالك ثم أعد المحاولة."
-      : safeUploadMessage,
-    );
+    throw new Error("تعذّر الرفع المباشر لهذا الملف. لم يُنشَر أيّ محتوى؛ تحقّق من إعدادات Backblaze CORS ثم أعد المحاولة.");
   }
 }

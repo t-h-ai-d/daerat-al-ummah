@@ -251,3 +251,9 @@
 - [x] Diagnose the external build failure during `corepack pnpm install --frozen-lockfile` and `pnpm build`.
 - [x] Pin a reproducible pnpm/Corepack installation path for Render and external Node hosts, then verify a clean frozen-lockfile build.
 - [x] Revalidate the final deployment command after the package-manager fix.
+- [ ] Diagnose and correct the live attachment-upload failure before changing the content-creation flow.
+- [x] Restrict new public post, image, file, and video creation to Creator Studio and replace the home composer with a clear Studio entry point.
+- [x] Add safe in-studio video preview before publishing and video playback cards after publishing, with no autoplay.
+- [x] Add regression coverage for upload failure messaging and the Studio-only publishing boundary.
+- [ ] Consolidate creator publishing, social discussion, community resources, and attachment sharing into one Arabic-first Content Hub inspired by video, social-network, and code-hosting workflows without copying brands or engagement algorithms.
+- [x] Correct the misleading “large file” message for failed small-video uploads and expose a safe, actionable relay-versus-direct-upload error state.
