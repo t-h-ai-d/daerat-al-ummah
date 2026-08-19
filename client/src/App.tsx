@@ -12,12 +12,17 @@ import PlatformPage from "./pages/PlatformPage";
 import PrivacyPage from "./pages/PrivacyPage";
 import StudioPage from "./pages/StudioPage";
 import TermsPage from "./pages/TermsPage";
+import { ChannelPage, VideosPage, WatchPage } from "./pages/VideoPage";
 import { Route, Switch } from "wouter";
 
 function Router() {
   return (
     <Switch>
-      <Route path={"/"} component={Home} />
+      <Route path={"/"} component={VideosPage} />
+      <Route path={"/videos"} component={VideosPage} />
+      <Route path={"/watch/:postId"} component={WatchPage} />
+      <Route path={"/channel/:memberId"} component={ChannelPage} />
+      <Route path={"/feed"} component={Home} />
       <Route path={"/auth"} component={AuthPage} />
       <Route path={"/chat"} component={ChatPage} />
       <Route path={"/hub"} component={ContentHubPage} />
@@ -25,6 +30,7 @@ function Router() {
       <Route path={"/communities/:slug"} component={CommunityDetailPage} />
       <Route path="/explore"><PlatformPage kind="explore" /></Route>
       <Route path="/saved"><PlatformPage kind="saved" /></Route>
+      <Route path="/playlists"><PlatformPage kind="playlists" /></Route>
       <Route path="/notifications"><PlatformPage kind="notifications" /></Route>
       <Route path="/rules"><PlatformPage kind="rules" /></Route>
       <Route path="/profile"><PlatformPage kind="profile" /></Route>

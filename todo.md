@@ -269,3 +269,16 @@
 - [ ] Verify the live Render service uses the intended current GitHub commit and the persistent TiDB/Backblaze configuration without exposing secrets.
 - [ ] GitHub main is synchronized and the anonymous public feed is rechecked; perform one signed-in small-video upload to complete the remaining Backblaze verification.
 - [ ] Confirm through a non-destructive signed-in production flow that `DATABASE_URL` reaches the intended TiDB Cloud database by publishing one public test post, then upload one small safe attachment to confirm Backblaze B2 delivery.
+- [x] Audit current post, attachment, search, profile, follow, save, and upload contracts to reuse them for a YouTube-style video product without duplicating incompatible data models.
+- [x] Replace the generic video browsing surface with an Arabic RTL, video-first discovery experience featuring finite sections, explicit filters, search, and no recommendation loop or endless scroll.
+- [x] Add a dedicated manual-playback watch route for every public video post, with title, creator channel, description, timestamps, sharing, download where permitted, report, save, repost, and expandable comments.
+- [x] Add a visible subscriptions filter to the video home that reuses the existing following-feed mode, with a truthful signed-out prompt and no new subscription table.
+- [x] Add public creator-channel pages that present a member’s published videos and reuse the existing follow graph as an explicit subscription action.
+- [x] Expose video-focused saved collections as user-owned watch-later and playlist workflows without making private collections public.
+- [ ] Repair and test the Studio-to-Backblaze upload path for small video/image/file attachments, including clear recoverable errors and safe preview before publication.
+- [x] Preserve Islamic rules, Arabic harakāt/shaddah, author visibility controls, no member-facing admin panel, no autoplay, and finite anti-addictive browsing throughout the video upgrade.
+- [x] Add regression tests and desktop/mobile visual verification for video discovery, watch pages, channels, playlists, and Studio upload-state UI before publishing the upgrade.
+- [x] Keep the YouTube-style upgrade strictly client-side: do not edit database schemas, run migrations, modify TiDB/Backblaze/Render settings, or seed production data.
+- [x] Ensure every YouTube-style client screen renders only existing posts, attachments, accounts, comments, likes, follows, and saved collections, with clear zero-data states and no fabricated videos, channels, views, ratings, comments, or testimonials.
+- [x] Correct the mobile horizontal clipping observed on the new watch and channel pages, then repeat narrow-viewport visual verification.
+- [x] Repair the YouTube-style playlists/library route, which returned a 404 during desktop verification, and verify it resolves to the existing private saved-collections UI.

@@ -37,9 +37,10 @@ type MediaFilter = "all" | "image" | "gif" | "video" | "file" | "link";
 type VisibilityFilter = "all" | "public";
 
 const primaryNav: NavItem[] = [
-  { label: "الرئيسية", href: "/", icon: Home },
+  { label: "الفيديوهات", href: "/videos", icon: Video },
+  { label: "الخلاصة", href: "/feed", icon: Home },
   { label: "استكشاف", href: "/explore", icon: Compass },
-  { label: "مركز المحتوى", href: "/hub", icon: Sparkles },
+  { label: "المكتبة", href: "/hub", icon: Sparkles },
   { label: "المحفوظات", href: "/saved", icon: Bookmark },
   { label: "الرسائل", href: "/chat", icon: MessageCircleMore },
   { label: "المجتمعات", href: "/communities", icon: UsersRound },
@@ -207,7 +208,7 @@ export default function PlatformShell({ children }: { children: ReactNode }) {
 
   const submitSearch = (event: React.FormEvent) => {
     event.preventDefault();
-    if (query.trim()) navigate(`/explore?q=${encodeURIComponent(query.trim())}`);
+    if (query.trim()) navigate(`/videos?q=${encodeURIComponent(query.trim())}`);
   };
 
   const selectMediaFilter = (filter: MediaFilter) => {
@@ -225,7 +226,7 @@ export default function PlatformShell({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div dir="rtl" lang="ar" className="min-h-screen bg-[#f5f5ef] text-[#16352d]">
+    <div dir="rtl" lang="ar" className="min-h-screen overflow-x-clip bg-[#f5f5ef] text-[#16352d]">
       <header className="sticky top-0 z-40 border-b border-[#dce1d5]/90 bg-[#f9faf6]/90 backdrop-blur-xl">
         <div className="mx-auto flex h-[73px] max-w-[1440px] items-center gap-3 px-4 sm:px-6 lg:px-8">
           <button
@@ -310,7 +311,7 @@ export default function PlatformShell({ children }: { children: ReactNode }) {
                 );
               })}
             </nav>
-            {location === "/" && <div className="mt-3 space-y-3 border-t border-[#e1e6dc] pt-3"><div><p className="mb-2 text-xs font-bold text-[#537367]">خصوصية الخلاصة</p><div className="flex flex-wrap gap-1.5">{visibilityFilters.map(filter => <button key={filter.value} type="button" onClick={() => selectVisibilityFilter(filter.value)} className={`rounded-lg px-2.5 py-1.5 text-xs font-bold ${visibilityFilter === filter.value ? "bg-[#0d3b31] text-white" : "bg-white text-[#537367]"}`}>{filter.label}</button>)}</div></div><div><p className="mb-2 text-xs font-bold text-[#537367]">تصفية الخلاصة</p><div className="flex flex-wrap gap-1.5">{mediaFilters.map(filter => <button key={filter.value} type="button" onClick={() => selectMediaFilter(filter.value)} className={`rounded-lg px-2.5 py-1.5 text-xs font-bold ${mediaFilter === filter.value ? "bg-[#0d3b31] text-white" : "bg-white text-[#537367]"}`}>{filter.label}</button>)}</div></div></div>}
+            {location === "/feed" && <div className="mt-3 space-y-3 border-t border-[#e1e6dc] pt-3"><div><p className="mb-2 text-xs font-bold text-[#537367]">خصوصية الخلاصة</p><div className="flex flex-wrap gap-1.5">{visibilityFilters.map(filter => <button key={filter.value} type="button" onClick={() => selectVisibilityFilter(filter.value)} className={`rounded-lg px-2.5 py-1.5 text-xs font-bold ${visibilityFilter === filter.value ? "bg-[#0d3b31] text-white" : "bg-white text-[#537367]"}`}>{filter.label}</button>)}</div></div><div><p className="mb-2 text-xs font-bold text-[#537367]">تصفية الخلاصة</p><div className="flex flex-wrap gap-1.5">{mediaFilters.map(filter => <button key={filter.value} type="button" onClick={() => selectMediaFilter(filter.value)} className={`rounded-lg px-2.5 py-1.5 text-xs font-bold ${mediaFilter === filter.value ? "bg-[#0d3b31] text-white" : "bg-white text-[#537367]"}`}>{filter.label}</button>)}</div></div></div>}
           </div>
         )}
       </header>
@@ -333,7 +334,7 @@ export default function PlatformShell({ children }: { children: ReactNode }) {
               );
             })}
           </nav>
-          {location === "/" && <section className="mt-6 rounded-2xl border border-[#dbe4d8] bg-white p-4"><p className="text-sm font-bold text-[#24483d]">تصفية الخلاصة</p><p className="mt-1 text-xs leading-5 text-[#688176]">اختر ما تريد رؤيته، من دون توصيات أو تمرير بلا نهاية.</p><div className="mt-3"><p className="text-xs font-bold text-[#537367]">الظهور</p><div className="mt-2 flex flex-wrap gap-1.5">{visibilityFilters.map(filter => <button key={filter.value} type="button" onClick={() => selectVisibilityFilter(filter.value)} className={`rounded-lg px-2.5 py-1.5 text-xs font-bold transition-colors ${visibilityFilter === filter.value ? "bg-[#0d3b31] text-white" : "bg-[#f3f7f1] text-[#4d6d60] hover:bg-[#e4eee4]"}`}>{filter.label}</button>)}</div></div><div className="mt-3"><p className="text-xs font-bold text-[#537367]">نوع المحتوى</p><div className="mt-2 flex flex-wrap gap-1.5">{mediaFilters.map(filter => <button key={filter.value} type="button" onClick={() => selectMediaFilter(filter.value)} className={`rounded-lg px-2.5 py-1.5 text-xs font-bold transition-colors ${mediaFilter === filter.value ? "bg-[#0d3b31] text-white" : "bg-[#f3f7f1] text-[#4d6d60] hover:bg-[#e4eee4]"}`}>{filter.label}</button>)}</div></div></section>}
+          {location === "/feed" && <section className="mt-6 rounded-2xl border border-[#dbe4d8] bg-white p-4"><p className="text-sm font-bold text-[#24483d]">تصفية الخلاصة</p><p className="mt-1 text-xs leading-5 text-[#688176]">اختر ما تريد رؤيته، من دون توصيات أو تمرير بلا نهاية.</p><div className="mt-3"><p className="text-xs font-bold text-[#537367]">الظهور</p><div className="mt-2 flex flex-wrap gap-1.5">{visibilityFilters.map(filter => <button key={filter.value} type="button" onClick={() => selectVisibilityFilter(filter.value)} className={`rounded-lg px-2.5 py-1.5 text-xs font-bold transition-colors ${visibilityFilter === filter.value ? "bg-[#0d3b31] text-white" : "bg-[#f3f7f1] text-[#4d6d60] hover:bg-[#e4eee4]"}`}>{filter.label}</button>)}</div></div><div className="mt-3"><p className="text-xs font-bold text-[#537367]">نوع المحتوى</p><div className="mt-2 flex flex-wrap gap-1.5">{mediaFilters.map(filter => <button key={filter.value} type="button" onClick={() => selectMediaFilter(filter.value)} className={`rounded-lg px-2.5 py-1.5 text-xs font-bold transition-colors ${mediaFilter === filter.value ? "bg-[#0d3b31] text-white" : "bg-[#f3f7f1] text-[#4d6d60] hover:bg-[#e4eee4]"}`}>{filter.label}</button>)}</div></div></section>}
           <div className="mt-8 rounded-2xl border border-[#dbe4d8] bg-[linear-gradient(145deg,#edf3ec,#f9f8ec)] p-4">
             <span className="mb-3 grid h-8 w-8 place-items-center rounded-lg bg-[#c59e43] text-[#14392f]"><ShieldCheck size={17} /></span>
             <p className="text-sm font-bold text-[#24483d]">مجتمع سُنّي آمن بالتصميم.</p>
@@ -342,7 +343,7 @@ export default function PlatformShell({ children }: { children: ReactNode }) {
           </div>
         </aside>
 
-        <main className="min-w-0 flex-1 pb-20 lg:pb-0">{location.match(/^\/communities\/([^/]+)$/) && <CommunityResourceStrip slug={decodeURIComponent(location.match(/^\/communities\/([^/]+)$/)?.[1] ?? "")} />}{children}</main>
+        <main className="w-full min-w-0 max-w-full flex-1 overflow-x-clip pb-20 lg:pb-0">{location.match(/^\/communities\/([^/]+)$/) && <CommunityResourceStrip slug={decodeURIComponent(location.match(/^\/communities\/([^/]+)$/)?.[1] ?? "")} />}{children}</main>
       </div>
 
       <nav className="fixed inset-x-0 bottom-0 z-40 flex h-[67px] border-t border-[#dfe5da] bg-[#fbfcf8]/95 px-3 pb-[max(0px,env(safe-area-inset-bottom))] backdrop-blur-xl lg:hidden">
