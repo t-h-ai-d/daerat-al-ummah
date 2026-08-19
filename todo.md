@@ -215,8 +215,8 @@
 - [ ] Expand communities into groups, channels, subcommunities, events, pinned resources, and member-controlled visibility.
 - [ ] Expand social graph features with follows, friends, blocking, restricted access, mentions, tags, saved posts, reposts, and share links.
 - [ ] Expand messaging with group chats, media messages, replies, search, read states, and per-member deletion controls.
-- [ ] Add platform-wide search and discovery with finite, non-ranked result pages and Arabic-aware indexing.
-- [ ] Add creator analytics, scheduled drafts, content collections, and a richer member-facing Creator Studio.
+- [x] Add platform-wide search and discovery with finite, non-ranked result pages and Arabic-aware indexing.
+- [x] Add creator analytics, scheduled drafts, content collections, and a richer member-facing Creator Studio.
 - [ ] Add privacy, safety, report, anti-spam, audit, and notification controls for the expanded feature set.
 - [ ] Re-validate the live upload path before adding larger media features.
 - [ ] Publish the prioritized expansion in staged releases with regression tests.

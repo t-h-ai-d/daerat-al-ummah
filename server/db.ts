@@ -502,10 +502,18 @@ export async function listMyPosts(authorId: number) {
   const db = await requireDb();
   const mine = await db.select().from(posts).where(eq(posts.authorId, authorId)).orderBy(desc(posts.createdAt)).limit(50);
   if (!mine.length) return [];
-  const attachmentRows = await db.select().from(postAttachments).where(inArray(postAttachments.postId, mine.map(post => post.id)));
+  const postIds = mine.map(post => post.id);
+  const [attachmentRows, likeRows, commentRows, repostRows] = await Promise.all([
+    db.select().from(postAttachments).where(inArray(postAttachments.postId, postIds)),
+    db.select({ postId: likes.postId, total: sql<number>`count(*)` }).from(likes).where(inArray(likes.postId, postIds)).groupBy(likes.postId),
+    db.select({ postId: comments.postId, total: sql<number>`count(*)` }).from(comments).where(inArray(comments.postId, postIds)).groupBy(comments.postId),
+    db.select({ postId: reposts.postId, total: sql<number>`count(*)` }).from(reposts).where(inArray(reposts.postId, postIds)).groupBy(reposts.postId),
+  ]);
   const attachmentMap = new Map<number, typeof attachmentRows>();
   attachmentRows.forEach(item => attachmentMap.set(item.postId ?? 0, [...(attachmentMap.get(item.postId ?? 0) ?? []), item]));
-  return mine.map(post => ({ ...post, attachments: attachmentMap.get(post.id) ?? [] }));
+  const countMap = (rows: Array<{ postId: number; total: number }>) => new Map(rows.map(row => [row.postId, Number(row.total)]));
+  const likeMap = countMap(likeRows); const commentMap = countMap(commentRows); const repostMap = countMap(repostRows);
+  return mine.map(post => ({ ...post, attachments: attachmentMap.get(post.id) ?? [], likeCount: likeMap.get(post.id) ?? 0, commentCount: commentMap.get(post.id) ?? 0, repostCount: repostMap.get(post.id) ?? 0 }));
 }
 
 export function assertPostOwnership<T extends { id: number }>(post: T | undefined): T {
