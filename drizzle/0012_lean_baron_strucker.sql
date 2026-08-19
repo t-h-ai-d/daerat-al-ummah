@@ -1,0 +1,1 @@
+ALTER TABLE `communities` MODIFY COLUMN `kind` enum('community','group','channel','subcommunity') NOT NULL DEFAULT 'community';

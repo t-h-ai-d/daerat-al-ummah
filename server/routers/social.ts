@@ -41,6 +41,8 @@ export const createPostInputSchema = z.object({
   }
 });
 
+export const communityKindSchema = z.enum(["community", "group", "channel"]);
+
 export const communitySlugSchema = z.string().trim().toLowerCase().min(3).max(96).regex(/^[a-zA-Z0-9\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF-]+$/, "استخدم حروفًا أو أرقامًا أو شرطات فقط، بالعربية أو الإنجليزية.");
 
 function attachmentKind(mimeType: string): "image" | "gif" | "video" | "file" {
@@ -86,7 +88,7 @@ export const socialRouter = router({
     .input(z.object({ communityId: z.number().int().positive() }))
     .query(({ ctx, input }) => db.listCommunityFeed(ctx.user?.id, input.communityId)),
   createCommunity: protectedProcedure
-    .input(z.object({ name: z.string().trim().min(3).max(120), slug: communitySlugSchema, description: z.string().trim().min(12).max(1600), kind: z.enum(["community", "group"]), parentId: z.number().int().positive().optional(), visibility: z.enum(["public", "members"]).default("public") }))
+    .input(z.object({ name: z.string().trim().min(3).max(120), slug: communitySlugSchema, description: z.string().trim().min(12).max(1600), kind: communityKindSchema, parentId: z.number().int().positive().optional(), visibility: z.enum(["public", "members"]).default("public") }))
     .mutation(({ ctx, input }) => db.createCommunity(ctx.user.id, input)),
   joinCommunity: protectedProcedure
     .input(z.object({ communityId: z.number().int().positive() }))

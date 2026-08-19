@@ -85,6 +85,13 @@
       "when": 1787130418767,
       "tag": "0011_naive_jamie_braddock",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "5",
+      "when": 1787130715757,
+      "tag": "0012_lean_baron_strucker",
+      "breakpoints": true
     }
   ]
 }

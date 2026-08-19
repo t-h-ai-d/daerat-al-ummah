@@ -45,7 +45,7 @@ export const communities = mysqlTable(
     name: varchar("name", { length: 120 }).notNull(),
     slug: varchar("slug", { length: 96 }).notNull().unique(),
     description: text("description").notNull(),
-    kind: mysqlEnum("kind", ["community", "group", "subcommunity"]).default("community").notNull(),
+    kind: mysqlEnum("kind", ["community", "group", "channel", "subcommunity"]).default("community").notNull(),
     parentId: int("parentId"),
     visibility: mysqlEnum("visibility", ["public", "members"]).default("public").notNull(),
     creatorId: int("creatorId").notNull().references(() => users.id, { onDelete: "cascade" }),

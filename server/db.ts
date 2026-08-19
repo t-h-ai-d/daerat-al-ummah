@@ -353,7 +353,7 @@ async function assertCommunityMembership(userId: number, communityId: number) {
   return membership;
 }
 
-export async function createCommunity(userId: number, data: { name: string; slug: string; description: string; kind: "community" | "group"; parentId?: number; visibility: "public" | "members" }) {
+export async function createCommunity(userId: number, data: { name: string; slug: string; description: string; kind: "community" | "group" | "channel"; parentId?: number; visibility: "public" | "members" }) {
   const db = await requireDb();
   let parent: typeof communities.$inferSelect | undefined;
   if (data.parentId) {

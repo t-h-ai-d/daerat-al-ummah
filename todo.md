@@ -210,7 +210,7 @@
 - [ ] Fix the authenticated live upload attempt that still fails after a member selects an ordinary file.
 - [ ] Correct the mismatch between the client relay URL and the server relay route so PUT requests cannot fall into the HTML page fallback.
 
-- [ ] Define the expanded social-platform feature map without removing the anti-addictive finite-feed rules.
+- [x] Define the expanded social-platform feature map without removing the anti-addictive finite-feed rules.
 - [ ] Add a unified content hub for text, images, video, GIFs, audio, documents, live-ready drafts, and mixed posts.
 - [ ] Expand communities into groups, channels, subcommunities, events, pinned resources, and member-controlled visibility.
 - [ ] Expand social graph features with follows, friends, blocking, restricted access, mentions, tags, saved posts, reposts, and share links.
@@ -226,3 +226,4 @@
 - [x] Add an author/member-controlled remove action inside the saved-posts page.
 - [x] Add real per-post engagement counts to Creator Studio without engagement-ranked feed behavior.
 - [x] Add protected group-chat creation with bounded member lists, Arabic group naming, list display, and shared message/delete flows.
+- [x] Add the channel community type with Arabic creation UI, visibility support, schema migration, and validation coverage.

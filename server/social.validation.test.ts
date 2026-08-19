@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
-import { attachmentSchema, communitySlugSchema, createPostInputSchema, reportCategorySchema } from "./routers/social";
+import { attachmentSchema, communityKindSchema, communitySlugSchema, createPostInputSchema, reportCategorySchema } from "./routers/social";
 import { assertPostOwnership, assertReportablePost, interleaveFeedAuthors } from "./db";
 import { attachmentScanStatus, isAttachmentDownloadAllowed, requiresAttachmentQuarantine } from "./attachmentSecurity";
 import { readFileSync } from "node:fs";
@@ -66,6 +66,11 @@ describe("social input safeguards", () => {
   it("rejects an empty visible-thread comment before writing to the database", async () => {
     const caller = appRouter.createCaller(createAuthenticatedContext());
     await expect(caller.social.addComment({ postId: 1, content: "" })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+
+  it("accepts channels as a community type while rejecting unknown types", () => {
+    expect(communityKindSchema.safeParse("channel").success).toBe(true);
+    expect(communityKindSchema.safeParse("forum").success).toBe(false);
   });
 
   it("accepts only the four report categories used by the backend report form", () => {
