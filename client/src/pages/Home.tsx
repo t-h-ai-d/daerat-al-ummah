@@ -74,7 +74,9 @@ export default function Home() {
   const [reportDetails, setReportDetails] = useState("");
   const [editingPost, setEditingPost] = useState<FeedPost | null>(null);
   const [editedContent, setEditedContent] = useState("");
-  const feedQuery = trpc.social.feed.useQuery({ mode: feedMode });
+  const publicVisitor = !isAuthenticated;
+  const effectiveFeedMode: FeedMode = publicVisitor ? "chronological" : feedMode;
+  const feedQuery = trpc.social.feed.useQuery({ mode: effectiveFeedMode, visibilityScope: publicVisitor ? "public" : "all" });
   const ensureSignedIn = () => { if (isAuthenticated) return true; toast.info("سَجِّلِ الدُّخولَ للمشاركة في الدَّائِرَة."); setLocation("/auth"); return false; };
   const like = trpc.social.toggleLike.useMutation({ onSuccess: () => void utils.social.feed.invalidate(), onError: error => toast.error(error.message) });
   const repost = trpc.social.toggleRepost.useMutation({ onSuccess: () => void utils.social.feed.invalidate(), onError: error => toast.error(error.message) });

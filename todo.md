@@ -260,3 +260,7 @@
 - [x] Remove automatic playback from the full-screen published-video viewer while retaining explicit playback controls.
 - [x] Add owner-managed pinned community resources with public/member visibility enforcement and Arabic RTL UI.
 - [x] Add private saved-content collections so members can organize useful posts without creating a ranked feed or exposing collections publicly.
+- [x] Diagnose and fix public posts disappearing for signed-out visitors while preserving Friends-only and member-only visibility boundaries.
+- [ ] Add regression coverage for the signed-out public feed and verify the deployed Render database is the intended data source.
+- [x] Add regression coverage for the signed-out public feed query and its separate cache key.
+- [ ] Verify the deployed Render service points at the intended persistent TiDB database after the next deploy.

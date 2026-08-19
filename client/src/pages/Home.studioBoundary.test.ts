@@ -13,4 +13,9 @@ describe("home publishing boundary", () => {
     expect(homeSource).toContain('setLocation(isAuthenticated ? "/studio" : "/auth")');
     expect(homeSource).toContain("اِصنَعْ مَحتواكَ في اِسْتُودْيُو المُنشِئ");
   });
+
+  it("uses a separate public-only feed query for signed-out visitors", () => {
+    expect(homeSource).toContain('const publicVisitor = !isAuthenticated;');
+    expect(homeSource).toContain('visibilityScope: publicVisitor ? "public" : "all"');
+  });
 });

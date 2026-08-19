@@ -45,7 +45,7 @@ export default function ContentHubPage() {
   const { isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
   const [filter, setFilter] = useState<HubFilter>("all");
-  const feed = trpc.social.feed.useQuery({ mode: "chronological" });
+  const feed = trpc.social.feed.useQuery({ mode: "chronological", visibilityScope: isAuthenticated ? "all" : "public" });
   const posts = useMemo(() => ((feed.data ?? []) as FeedPost[]).filter(post => matches(post, filter)).slice(0, 12), [feed.data, filter]);
 
   return <PlatformShell><main className="mx-auto max-w-[1180px] px-4 py-6 sm:px-6 lg:px-8 lg:py-9" dir="rtl">
