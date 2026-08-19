@@ -250,4 +250,4 @@
 
 - [x] Diagnose the external build failure during `corepack pnpm install --frozen-lockfile` and `pnpm build`.
 - [x] Pin a reproducible pnpm/Corepack installation path for Render and external Node hosts, then verify a clean frozen-lockfile build.
-- [ ] Revalidate the final deployment command after the package-manager fix.
+- [x] Revalidate the final deployment command after the package-manager fix.
