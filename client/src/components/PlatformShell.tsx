@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import {
   Bell,
   BookOpen,
+  Bookmark,
   Compass,
   Home,
   LogOut,
@@ -27,6 +28,7 @@ type VisibilityFilter = "all" | "public";
 const primaryNav: NavItem[] = [
   { label: "الرئيسية", href: "/", icon: Home },
   { label: "استكشاف", href: "/explore", icon: Compass },
+  { label: "المحفوظات", href: "/saved", icon: Bookmark },
   { label: "الرسائل", href: "/chat", icon: MessageCircleMore },
   { label: "المجتمعات", href: "/communities", icon: UsersRound },
   { label: "استوديو المُنشِئ", href: "/studio", icon: Palette },

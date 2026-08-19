@@ -7,11 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
-import { Bell, FileSearch, ImageUp, Loader2, Search, ShieldCheck, Trash2, UserPlus, UsersRound } from "lucide-react";
+import { Bell, Bookmark, FileSearch, ImageUp, Loader2, Search, ShieldCheck, Trash2, UserPlus, UsersRound } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 
-type PageKind = "explore" | "notifications" | "rules" | "profile";
+type PageKind = "explore" | "saved" | "notifications" | "rules" | "profile";
 
 const rules = [
   ["الصدق أمانة", "لا تنشر عمدًا كذبًا أو ادعاءً مضلّلًا أو انتحالًا أو مادةً محرّفة. وإن لم تكن متيقنًا فقل ذلك وارجع إلى المصادر الموثوقة."],
@@ -44,6 +44,13 @@ function Explore() {
       <section><p className="text-xs font-bold tracking-[0.14em] text-[#7b9287]">المنشورات</p><div className="mt-3 space-y-3">{results.data?.posts?.length ? results.data.posts.map(post => <div key={post.id} className="rounded-[20px] border border-[#dce5da] bg-white p-4"><div className="flex items-center gap-2"><span className="grid h-7 w-7 place-items-center rounded-lg bg-[#e5efe5] text-[#21684b]"><UsersRound size={14} /></span><p className="text-xs font-bold text-[#46685a]">{post.authorName || post.authorUsername || "عضو في الدائرة"}</p></div><p dir="auto" className="mt-3 text-sm leading-6 text-[#3c5d50]">{post.content}</p>{post.hashtags && <p className="mt-3 text-xs font-bold text-[#34735a]">{post.hashtags}</p>}</div>) : <p className="rounded-xl border border-dashed border-[#d4dfd4] px-4 py-5 text-sm text-[#778d82]">لا توجد منشورات تطابق هذا البحث بعد.</p>}</div></section>
     </div>}
   </div>;
+}
+
+function Saved() {
+  const { isAuthenticated } = useAuth();
+  const saved = trpc.social.savedPosts.useQuery(undefined, { enabled: isAuthenticated });
+  if (!isAuthenticated) return <div dir="rtl" className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10"><PageIntro eyebrow="مساحتك الهادئة" title="المحفوظات" body="احفظ ما تريد الرجوع إليه لاحقاً، من دون أن تتحول الصفحة إلى تمرير لا ينتهي." /><div className="rounded-[24px] border border-dashed border-[#cbd9cd] bg-[#fbfcf8] px-6 py-16 text-center"><Bookmark className="mx-auto text-[#25684d]" size={28} /><h2 className="mt-5 font-display text-xl font-semibold text-[#264b3e]">سجّل الدخول لرؤية محفوظاتك.</h2><Button onClick={() => { window.location.href = "/auth"; }} className="mt-5 rounded-xl bg-[#0d4937] text-xs hover:bg-[#176047]">انضم إلى الدائرة</Button></div></div>;
+  return <div dir="rtl" className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10"><PageIntro eyebrow="مساحتك الهادئة" title="المحفوظات" body="منشورات اخترت الاحتفاظ بها للقراءة أو المراجعة. تُعرض بترتيب الحفظ، وبحدّ واضح، ولا تُرتَّب وفق الإعجابات." />{saved.isLoading ? <div className="flex items-center gap-2 rounded-[20px] border border-[#dce5da] bg-white p-6 text-sm text-[#6a8377]"><Loader2 className="animate-spin" size={17} />يجري تجهيز محفوظاتك…</div> : saved.data?.length ? <div className="space-y-4">{saved.data.map(post => <article key={post.id} className="rounded-[22px] border border-[#dce5da] bg-white p-5 shadow-[0_8px_24px_rgba(27,66,49,0.035)]"><div className="flex items-center justify-between gap-3"><div><p className="text-sm font-extrabold text-[#264a3e]">{post.author.name || post.author.username || "عضو في الدائرة"}</p><p className="mt-1 text-[11px] text-[#81958a]">حُفِظَ في {new Date(post.savedAt).toLocaleDateString("ar")}</p></div><Bookmark className="text-[#b58d32]" size={18} /></div>{post.title && <h2 className="mt-4 font-display text-lg font-bold text-[#24483d]">{post.title}</h2>}<p dir="auto" className="mt-3 whitespace-pre-wrap text-sm leading-7 text-[#3d5e51]">{post.content || "مَنْشُورٌ بِمُرْفَقٍ فقط."}</p></article>)}</div> : <div className="rounded-[24px] border border-dashed border-[#cbd9cd] bg-[#fbfcf8] px-6 py-16 text-center"><Bookmark className="mx-auto text-[#25684d]" size={28} /><h2 className="mt-5 font-display text-xl font-semibold text-[#264b3e]">لا توجد محفوظات بعد.</h2><p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#778d82]">استخدم زر الحفظ في المنشور عندما تجد شيئاً نافعاً تريد العودة إليه.</p></div>}</div>;
 }
 
 function Rules() {
@@ -198,6 +205,6 @@ function Profile() {
 
 export default function PlatformPage({ kind }: { kind: PageKind }) {
   const [location] = useLocation();
-  const page = kind === "explore" ? <Explore /> : kind === "notifications" ? <Notifications /> : kind === "profile" ? <><Profile /><FriendPrivacyPanel /></> : <Rules />;
+  const page = kind === "explore" ? <Explore /> : kind === "saved" ? <Saved /> : kind === "notifications" ? <Notifications /> : kind === "profile" ? <><Profile /><FriendPrivacyPanel /></> : <Rules />;
   return <PlatformShell key={location}>{page}</PlatformShell>;
 }

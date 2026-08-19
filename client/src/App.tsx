@@ -22,6 +22,7 @@ function Router() {
       <Route path={"/communities"} component={CommunitiesPage} />
       <Route path={"/communities/:slug"} component={CommunityDetailPage} />
       <Route path="/explore"><PlatformPage kind="explore" /></Route>
+      <Route path="/saved"><PlatformPage kind="saved" /></Route>
       <Route path="/notifications"><PlatformPage kind="notifications" /></Route>
       <Route path="/rules"><PlatformPage kind="rules" /></Route>
       <Route path="/profile"><PlatformPage kind="profile" /></Route>
