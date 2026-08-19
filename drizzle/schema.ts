@@ -187,6 +187,25 @@ export const friendships = mysqlTable(
   ],
 );
 
+export const memberBlocks = mysqlTable(
+  "memberBlocks",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    blockerId: int("blockerId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    blockedId: int("blockedId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  table => [
+    uniqueIndex("member_blocks_blocker_blocked_unique").on(table.blockerId, table.blockedId),
+    index("member_blocks_blocker_idx").on(table.blockerId, table.createdAt),
+    index("member_blocks_blocked_idx").on(table.blockedId, table.createdAt),
+  ],
+);
+
 export const likes = mysqlTable(
   "likes",
   {

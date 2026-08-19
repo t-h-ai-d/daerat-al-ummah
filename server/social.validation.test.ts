@@ -132,6 +132,14 @@ describe("social input safeguards", () => {
     expect("social.discardAttachmentUpload" in appRouter._def.procedures).toBe(true);
   });
 
+  it("exposes protected member blocking controls and validates blocked identifiers", async () => {
+    const socialProcedures = appRouter._def.procedures;
+    expect("social.toggleMemberBlock" in socialProcedures).toBe(true);
+    expect("social.blockedMembers" in socialProcedures).toBe(true);
+    const caller = appRouter.createCaller(createAuthenticatedContext());
+    await expect(caller.social.toggleMemberBlock({ blockedId: 0 })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+
   it("validates friendship targets and records requests as visible in-app notifications", async () => {
     const caller = appRouter.createCaller(createAuthenticatedContext());
     await expect(caller.social.requestFriendship({ targetUserId: 0 })).rejects.toMatchObject({ code: "BAD_REQUEST" });

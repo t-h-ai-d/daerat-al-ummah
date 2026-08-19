@@ -129,6 +129,10 @@ export const socialRouter = router({
   toggleFollow: protectedProcedure
     .input(z.object({ targetUserId: z.number().int().positive() }))
     .mutation(({ ctx, input }) => db.toggleFollow(ctx.user.id, input.targetUserId)),
+  toggleMemberBlock: protectedProcedure
+    .input(z.object({ blockedId: z.number().int().positive() }))
+    .mutation(({ ctx, input }) => db.toggleMemberBlock(ctx.user.id, input.blockedId)),
+  blockedMembers: protectedProcedure.query(({ ctx }) => db.listBlockedMembers(ctx.user.id)),
   friendships: protectedProcedure.query(({ ctx }) => db.listFriendships(ctx.user.id)),
   requestFriendship: protectedProcedure
     .input(z.object({ targetUserId: z.number().int().positive() }))

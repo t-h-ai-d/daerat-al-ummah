@@ -25,6 +25,7 @@ import {
   friendships,
   follows,
   likes,
+  memberBlocks,
   moderationActions,
   notifications,
   postAttachments,
@@ -845,6 +846,27 @@ export async function requestFriendship(requesterId: number, recipientId: number
   await notify({ recipientId, actorId: requesterId, type: "follow", message: "أرسل لك طلب صداقة — افتح ملفك لقبوله أو رفضه." });
   await deliverBrowserPush(recipientId, { title: "طلب صداقة جديد", body: "لديك طلب صداقة جديد في دائرة الأمة.", url: "/profile", tag: `friendship-${recipientId}` });
   return { status: "pending" as const, friendshipId: Number(created[0].insertId) };
+}
+
+export async function toggleMemberBlock(blockerId: number, blockedId: number) {
+  if (blockerId === blockedId) throw new Error("لا يمكنك حظر حسابك.");
+  const db = await requireDb();
+  const [target] = await db.select({ id: users.id }).from(users).where(eq(users.id, blockedId)).limit(1);
+  if (!target) throw new Error("العضو غير موجود.");
+  const [existing] = await db.select({ id: memberBlocks.id }).from(memberBlocks).where(and(eq(memberBlocks.blockerId, blockerId), eq(memberBlocks.blockedId, blockedId))).limit(1);
+  if (existing) {
+    await db.delete(memberBlocks).where(eq(memberBlocks.id, existing.id));
+    return { blocked: false as const };
+  }
+  await db.insert(memberBlocks).values({ blockerId, blockedId });
+  await db.delete(follows).where(or(and(eq(follows.followerId, blockerId), eq(follows.followingId, blockedId)), and(eq(follows.followerId, blockedId), eq(follows.followingId, blockerId))));
+  await db.delete(friendships).where(or(and(eq(friendships.requesterId, blockerId), eq(friendships.recipientId, blockedId)), and(eq(friendships.requesterId, blockedId), eq(friendships.recipientId, blockerId))));
+  return { blocked: true as const };
+}
+
+export async function listBlockedMembers(blockerId: number) {
+  const db = await requireDb();
+  return db.select({ id: users.id, name: users.name, username: users.username, avatarUrl: users.avatarUrl, createdAt: memberBlocks.createdAt }).from(memberBlocks).innerJoin(users, eq(users.id, memberBlocks.blockedId)).where(eq(memberBlocks.blockerId, blockerId)).orderBy(desc(memberBlocks.createdAt)).limit(100);
 }
 
 export async function respondToFriendship(recipientId: number, friendshipId: number, response: "accepted" | "rejected") {
