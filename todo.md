@@ -222,3 +222,5 @@
 - [ ] Publish the prioritized expansion in staged releases with regression tests.
 - [x] Ship the first expansion slice: database-backed saved posts with protected tRPC procedures, feed state, Arabic UI feedback, migration, and regression coverage.
 - [x] Add the member-visible Arabic saved-posts page and navigation route with signed-out and empty states.
+- [x] Add an author/member-controlled remove action inside the saved-posts page.
+- [x] Add an author/member-controlled remove action inside the saved-posts page.
